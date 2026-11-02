@@ -539,7 +539,7 @@ final class ConfigTest: XCTestCase {
         )
         assertEquals(
             result.strErrors,
-            ["[ERROR] after-login-command: after-login-command is deprecated since AeroSpace 0.19.0. https://github.com/nikitabobko/AeroSpace/issues/1482"],
+            ["[ERROR] after-login-command: after-login-command is deprecated since Looper 0.19.0. https://github.com/nikitabobko/AeroSpace/issues/1482"],
         )
 
         // Empty array is still accepted

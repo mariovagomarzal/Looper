@@ -3,20 +3,20 @@ cd "$(dirname "$0")/.."
 source ./script/setup.sh
 
 expected_layout=$(cat <<EOF
-.release/AeroSpace.app
-.release/AeroSpace.app/Contents
-.release/AeroSpace.app/Contents/_CodeSignature
-.release/AeroSpace.app/Contents/_CodeSignature/CodeResources
-.release/AeroSpace.app/Contents/MacOS
-.release/AeroSpace.app/Contents/MacOS/AeroSpace
-.release/AeroSpace.app/Contents/Resources
-.release/AeroSpace.app/Contents/Resources/default-config.toml
-.release/AeroSpace.app/Contents/Resources/AppIcon.icns
-.release/AeroSpace.app/Contents/Resources/Assets.car
-.release/AeroSpace.app/Contents/Frameworks
-.release/AeroSpace.app/Contents/Frameworks/libswiftCompatibilitySpan.dylib
-.release/AeroSpace.app/Contents/Info.plist
-.release/AeroSpace.app/Contents/PkgInfo
+.release/Looper.app
+.release/Looper.app/Contents
+.release/Looper.app/Contents/_CodeSignature
+.release/Looper.app/Contents/_CodeSignature/CodeResources
+.release/Looper.app/Contents/MacOS
+.release/Looper.app/Contents/MacOS/Looper
+.release/Looper.app/Contents/Resources
+.release/Looper.app/Contents/Resources/default-config.toml
+.release/Looper.app/Contents/Resources/AppIcon.icns
+.release/Looper.app/Contents/Resources/Assets.car
+.release/Looper.app/Contents/Frameworks
+.release/Looper.app/Contents/Frameworks/libswiftCompatibilitySpan.dylib
+.release/Looper.app/Contents/Info.plist
+.release/Looper.app/Contents/PkgInfo
 EOF
 )
 
@@ -29,7 +29,7 @@ check-equals() {
     fi
 }
 
-check-equals ".release/AeroSpace.app layout" "$expected_layout" "$(find .release/AeroSpace.app)"
+check-equals ".release/Looper.app layout" "$expected_layout" "$(find .release/Looper.app)"
 
 check-universal-binary() {
     if ! file "$1" | grep --fixed-string -q "Mach-O universal binary with 2 architectures: [x86_64:Mach-O 64-bit executable x86_64] [arm64"; then
@@ -70,21 +70,21 @@ check-dylibs() {
     done
 }
 
-check-no-rpath-dylibs .release/aerospace
+check-no-rpath-dylibs .release/looper
 
 expected_app_rpaths=$(cat <<EOF
 /usr/lib/swift
 @executable_path/../Frameworks
 EOF
 )
-check-rpaths .release/AeroSpace.app/Contents/MacOS/AeroSpace "$expected_app_rpaths"
+check-rpaths .release/Looper.app/Contents/MacOS/Looper "$expected_app_rpaths"
 
 expected_cli_rpaths=$(cat <<EOF
 /usr/lib/swift
 @loader_path
 EOF
 )
-check-rpaths .release/aerospace "$expected_cli_rpaths"
+check-rpaths .release/looper "$expected_cli_rpaths"
 
 expected_app_dylibs=$(cat <<EOF
 	/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
@@ -103,7 +103,7 @@ expected_app_dylibs=$(cat <<EOF
 	@rpath/libswiftCompatibilitySpan.dylib
 EOF
 )
-check-dylibs .release/AeroSpace.app/Contents/MacOS/AeroSpace "$expected_app_dylibs"
+check-dylibs .release/Looper.app/Contents/MacOS/Looper "$expected_app_dylibs"
 
 expected_cli_dylibs=$(cat <<EOF
 	/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation
@@ -113,13 +113,13 @@ expected_cli_dylibs=$(cat <<EOF
 	/usr/lib/libc++.1.dylib
 EOF
 )
-check-dylibs .release/aerospace "$expected_cli_dylibs"
+check-dylibs .release/looper "$expected_cli_dylibs"
 
-check-universal-binary .release/AeroSpace.app/Contents/MacOS/AeroSpace
-check-universal-binary .release/aerospace
+check-universal-binary .release/Looper.app/Contents/MacOS/Looper
+check-universal-binary .release/looper
 
-codesign -v .release/AeroSpace.app
-codesign -v .release/aerospace
+codesign -v .release/Looper.app
+codesign -v .release/looper
 
-check-contains-hash .release/AeroSpace.app/Contents/MacOS/AeroSpace
-check-contains-hash .release/aerospace
+check-contains-hash .release/Looper.app/Contents/MacOS/Looper
+check-contains-hash .release/looper

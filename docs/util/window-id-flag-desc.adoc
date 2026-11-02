@@ -1,2 +1,2 @@
 Act on the specified window instead of the focused window.
-The flag takes precedence over `AEROSPACE_WINDOW_ID` and `AEROSPACE_WORKSPACE` xref:./guide.adoc#environment-variables[environment variables].
+The flag takes precedence over `LOOPER_WINDOW_ID` and `LOOPER_WORKSPACE` https://nikitabobko.github.io/AeroSpace/guide#environment-variables[environment variables].

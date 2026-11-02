@@ -122,7 +122,7 @@ final class TestCommandTest: XCTestCase {
         }
 
         assertEquals(
-            await parseCommand("test %{app-bundle-id} = bobko.AeroSpace.test-app").cmdOrDie.run(.defaultEnv, .emptyStdin),
+            await parseCommand("test %{app-bundle-id} = com.mariovagomarzal.looper.test-app").cmdOrDie.run(.defaultEnv, .emptyStdin),
             CmdResult(stdout: [], stderr: [], exitCode: Int32ExitCode(rawValue: 0)),
         )
 
@@ -138,7 +138,7 @@ final class TestCommandTest: XCTestCase {
         }
 
         assertEquals(
-            await parseCommand("test %{app-bundle-id} ~= AERO").cmdOrDie.run(.defaultEnv, .emptyStdin),
+            await parseCommand("test %{app-bundle-id} ~= LOOPER").cmdOrDie.run(.defaultEnv, .emptyStdin),
             CmdResult(stdout: [], stderr: [], exitCode: Int32ExitCode(rawValue: 0)),
         )
 
@@ -165,7 +165,7 @@ final class TestCommandTest: XCTestCase {
 
         assertEquals(
             await parseCommand("test %{window-id} = 1").cmdOrDie.run(env, .emptyStdin),
-            CmdResult(stdout: [], stderr: ["Invalid <window-id> 9999 specified in AEROSPACE_WINDOW_ID env variable"], exitCode: Int32ExitCode(rawValue: 2)),
+            CmdResult(stdout: [], stderr: ["Invalid <window-id> 9999 specified in LOOPER_WINDOW_ID env variable"], exitCode: Int32ExitCode(rawValue: 2)),
         )
     }
 

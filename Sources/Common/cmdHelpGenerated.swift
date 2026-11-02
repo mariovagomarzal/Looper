@@ -1,4 +1,4 @@
-// FILE IS GENERATED FROM docs/aerospace-*.adoc files
+// FILE IS GENERATED FROM docs/looper-*.adoc files
 // TO REGENERATE THE FILE RUN generate.sh
 
 let balance_sizes_help_generated = """
@@ -28,7 +28,7 @@ let enable_help_generated = """
        OR: enable [-h|--help] off [--fail-if-noop]
     """
 let eval_help_generated = """
-    USAGE: eval [-h|--help] [--stdin] [--] <aerospace-shell-expr>
+    USAGE: eval [-h|--help] [--stdin] [--] <looper-shell-expr>
     """
 let exec_and_forget_help_generated = """
     USAGE: exec-and-forget <bash-script>

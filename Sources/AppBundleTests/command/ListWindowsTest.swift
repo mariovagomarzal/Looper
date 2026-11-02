@@ -130,7 +130,7 @@ final class ListWindowsTest: XCTestCase {
     func testRunJson() async {
         TestWindow.new(id: 7, parent: Workspace.get(byName: "a").rootTilingContainer)
         let result = await parseCommand("list-windows --all --format '%{window-id}' --json").cmdOrDie.run(.defaultEnv, .emptyStdin)
-        let expected = JSONEncoder.aeroSpaceDefault.encodeToString([["window-id": 7]])
+        let expected = JSONEncoder.looperDefault.encodeToString([["window-id": 7]])
         assertEquals(result.exitCode.rawValue, 0)
         assertEquals(result.stdout, [expected])
     }
@@ -191,7 +191,7 @@ final class ListWindowsTest: XCTestCase {
 
     func testRunFilterByAppBundleId() async {
         TestWindow.new(id: 1, parent: Workspace.get(byName: "a").rootTilingContainer)
-        let matching = await parseCommand("list-windows --monitor all --app-bundle-id bobko.AeroSpace.test-app --format '%{window-id}'").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        let matching = await parseCommand("list-windows --monitor all --app-bundle-id com.mariovagomarzal.looper.test-app --format '%{window-id}'").cmdOrDie.run(.defaultEnv, .emptyStdin)
         assertEquals(matching.exitCode.rawValue, 0)
         assertEquals(matching.stdout, ["1"])
 

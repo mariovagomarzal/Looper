@@ -2,7 +2,7 @@ import AppKit
 import Darwin
 import Foundation
 
-public let socketPath = "/tmp/\(aeroSpaceAppId)-\(unixUserName).sock"
+public let socketPath = "/tmp/\(looperAppId)-\(unixUserName).sock"
 public let unixUserName = NSUserName()
 public let mainModeId = "main"
 
@@ -17,11 +17,11 @@ public func bugPrompt(_ __message: String = "", isDie: Bool = false, fileId: MyF
     let thread = Thread.current
     return """
         Please report to:
-            https://github.com/nikitabobko/AeroSpace/discussions/categories/potential-bugs
+            https://github.com/mariovagomarzal/Looper/issues
             Please describe what you did to trigger this error
 
         Message: \(_message)
-        Version: \(aeroSpaceAppVersion)
+        Version: \(looperAppVersion)
         Git hash: \(gitHash)
         refreshSessionEvent: \(refreshSessionEvent.prettyDescription)
         Date: \(Date.now)
@@ -46,9 +46,9 @@ public func dieT<T>(_ __message: String = "", fileId: MyFileId = #myFileId) -> T
     if !isUnitTest && isServer {
         showMessageInGui(
             filenameIfConsoleApp: recursionDetectorDuringTermination
-                ? "aerospace-runtime-error-recursion.txt"
-                : "aerospace-runtime-error.txt",
-            title: "AeroSpace Runtime Error",
+                ? "looper-runtime-error-recursion.txt"
+                : "looper-runtime-error.txt",
+            title: "Looper Runtime Error",
             message: message,
         )
     }

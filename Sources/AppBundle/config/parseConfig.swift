@@ -177,7 +177,7 @@ func parseDeprecatedAfterLoginCommand(_ raw: OrderedJson, _ backtrace: ConfigBac
     if let array = raw.asArrayOrNil, array.count == 0 {
         return .success([])
     }
-    let msg = "after-login-command is deprecated since AeroSpace 0.19.0. https://github.com/nikitabobko/AeroSpace/issues/1482"
+    let msg = "after-login-command is deprecated since Looper 0.19.0. https://github.com/nikitabobko/AeroSpace/issues/1482"
     return .failure(.init(backtrace, msg))
 }
 

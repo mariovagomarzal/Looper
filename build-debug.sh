@@ -9,5 +9,5 @@ swift build --build-tests "$@"
 bin_path="$(swift build "$@" --show-bin-path)"
 
 rm -rf .debug && mkdir .debug
-cp -r "$bin_path/aerospace" .debug
-cp -r "$bin_path/AeroSpaceApp" .debug
+cp -r "$bin_path/looper" .debug
+cp -r "$bin_path/LooperApp" .debug

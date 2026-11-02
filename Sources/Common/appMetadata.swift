@@ -1,8 +1,8 @@
-public let stableAeroSpaceAppId: String = "bobko.aerospace"
+public let stableLooperAppId: String = "com.mariovagomarzal.looper"
 #if DEBUG
-    public let aeroSpaceAppId: String = "bobko.aerospace.debug"
-    public let aeroSpaceAppName: String = "AeroSpace-Debug"
+    public let looperAppId: String = "com.mariovagomarzal.looper.debug"
+    public let looperAppName: String = "Looper-Debug"
 #else
-    public let aeroSpaceAppId: String = stableAeroSpaceAppId
-    public let aeroSpaceAppName: String = "AeroSpace"
+    public let looperAppId: String = stableLooperAppId
+    public let looperAppName: String = "Looper"
 #endif

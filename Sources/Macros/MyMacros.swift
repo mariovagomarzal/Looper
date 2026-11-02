@@ -21,6 +21,6 @@ public struct FilePathMacro: ExpressionMacro {
 }
 
 @main
-struct AeroSpaceMacrosPlugin: CompilerPlugin {
+struct LooperMacrosPlugin: CompilerPlugin {
     let providingMacros: [any Macro.Type] = [FileIdMacro.self, FilePathMacro.self]
 }

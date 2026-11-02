@@ -4,16 +4,12 @@ on:
   push:
     branches:
       - 'main'
-      - 'rr/**' # "rr" stands for "remote run"
   pull_request:
     branches: [ "main" ]
-  schedule:
-    - cron: '0 0 * * *' # every day at 00:00
-  workflow_call: # Allows other workflows to reuse this workflow as a job (see queue.yml)
   workflow_dispatch: # Allows running this workflow manually from the Actions tab or via 'gh workflow run'
 
 env:
-  AEROSPACE_VERBOSE_BUILD: 1
+  LOOPER_VERBOSE_BUILD: 1
 
 jobs:
 
@@ -65,10 +61,8 @@ jobs:
       - run: swiftly run swift --version
       - name: './build-release.sh'
         run: |
-          # "-" means "Sign to run locally". There is no aerospace-codesign-certificate on GH Actions
+          # "-" means "Sign to run locally". There is no looper-codesign-certificate on GH Actions
           ./build-release.sh --codesign-identity -
-          brew trust nikitabobko/tap
-          ./install-from-sources.sh --dont-rebuild
       - name: cat ./.release/xcodebuild.log
         if: ${{ always() }}
         run: 'if test -f ./.release/xcodebuild.log; then cat ./.release/xcodebuild.log; fi'

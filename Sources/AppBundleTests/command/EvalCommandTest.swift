@@ -8,7 +8,7 @@ final class EvalCommandTest: XCTestCase {
 
     func testParse() {
         testParseSingleCommandSucc("eval 'workspace foo'", EvalCmdArgs(rawArgs: []).with(\.shellExpr, .initialized("workspace foo")))
-        assertEquals(parseCommand("eval").errorOrNil, "ERROR: Argument '<aerospace-shell-expr>' is mandatory")
+        assertEquals(parseCommand("eval").errorOrNil, "ERROR: Argument '<looper-shell-expr>' is mandatory")
     }
 
     func testParseDoubleDash() {
@@ -16,7 +16,7 @@ final class EvalCommandTest: XCTestCase {
             "eval -- '--anything'",
             EvalCmdArgs(rawArgs: []).with(\.shellExpr, .initialized("--anything")),
         )
-        assertEquals(parseCommand("eval --").errorOrNil, "ERROR: Argument '<aerospace-shell-expr>' is mandatory")
+        assertEquals(parseCommand("eval --").errorOrNil, "ERROR: Argument '<looper-shell-expr>' is mandatory")
     }
 
     func testRunSimpleCommand() async {

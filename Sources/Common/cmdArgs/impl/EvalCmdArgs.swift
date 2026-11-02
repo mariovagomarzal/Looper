@@ -9,7 +9,7 @@ public struct EvalCmdArgs: CmdArgs {
         ],
         posArgs: [
             doubleDashArg(mandatory: false),
-            newMandatoryPosArgParser(\.shellExpr, consumeStrCliArg, placeholder: "<aerospace-shell-expr>"),
+            newMandatoryPosArgParser(\.shellExpr, consumeStrCliArg, placeholder: "<looper-shell-expr>"),
         ],
         conflictingFlags: [],
     )

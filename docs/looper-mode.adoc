@@ -1,0 +1,31 @@
+= looper-mode(1)
+include::util/man-attributes.adoc[]
+// tag::purpose[]
+:manpurpose: Activate the specified binding mode
+// end::purpose[]
+:manname: looper-mode
+
+// =========================================================== Synopsis
+== Synopsis
+[verse]
+// tag::synopsis[]
+looper mode [-h|--help] [--] <binding-mode>
+
+// end::synopsis[]
+
+// =========================================================== Description
+== Description
+
+// tag::body[]
+{manpurpose}
+
+See https://nikitabobko.github.io/AeroSpace/guide#binding-modes[the guide] for documentation about binding modes
+// end::body[]
+
+// =========================================================== Options
+include::util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+// =========================================================== Footer
+include::util/man-footer.adoc[]

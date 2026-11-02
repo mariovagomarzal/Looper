@@ -1,0 +1,48 @@
+= looper-eval(1)
+include::util/man-attributes.adoc[]
+:manname: looper-eval
+// tag::purpose[]
+:manpurpose: Send multiple commands to Looper at once
+// end::purpose[]
+
+// =========================================================== Synopsis
+== Synopsis
+[verse]
+// tag::synopsis[]
+looper eval [-h|--help] [--stdin] [--] <looper-shell-expr>
+
+// end::synopsis[]
+
+// =========================================================== Description
+== Description
+
+// tag::body[]
+{manpurpose}
+
+// todo: improve documentation. E.g. eval is more performant then sending multiple commands via CLI
+
+// =========================================================== Options
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+--stdin::
+Capture CLIs stdin and forward it to `<looper-shell-expr>`.
+If not supplied, stdin is ignored.
+
+// =========================================================== Arguments
+include::./util/conditional-arguments-header.adoc[]
+
+<looper-shell-expr>:: This argument is Looper's shell expression.
+See https://nikitabobko.github.io/AeroSpace/guide#shell for more info.
+
+// =========================================================== Examples
+include::util/conditional-examples-header.adoc[]
+
+* Cycle between workspaces a, b, and c: +
+`looper eval 'echo a b c | workspace --wrap-around --stdin next'`
+
+// end::body[]
+
+// =========================================================== Footer
+include::util/man-footer.adoc[]

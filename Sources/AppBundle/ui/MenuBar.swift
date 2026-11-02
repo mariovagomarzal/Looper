@@ -5,8 +5,8 @@ import SwiftUI
 @MainActor
 public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it be converted to "SwiftUI struct"?
     MenuBarExtra {
-        let shortIdentification = "\(aeroSpaceAppName) v\(aeroSpaceAppVersion) \(gitShortHash)"
-        let identification      = "\(aeroSpaceAppName) v\(aeroSpaceAppVersion) \(gitHash)"
+        let shortIdentification = "\(looperAppName) v\(looperAppVersion) \(gitShortHash)"
+        let identification      = "\(looperAppName) v\(looperAppVersion) \(gitHash)"
         Text(shortIdentification)
         Button("Copy to clipboard") { identification.copyToClipboard() }
             .keyboardShortcut("C", modifiers: .command)
@@ -41,14 +41,6 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
                 }
                 Divider()
             }
-            Button {
-                NSWorkspace.shared.open(URL(string: "https://github.com/sponsors/nikitabobko").orDie())
-                viewModel.sponsorshipMessage = sponsorshipPrompts.randomElement().orDie()
-            } label: {
-                Text("Sponsor AeroSpace on GitHub")
-                Text(viewModel.sponsorshipMessage)
-            }
-            Divider()
             Button(viewModel.isEnabled ? "Disable" : "Enable") {
                 Task.startUnstructured {
                     try await runLightSession(.menuBarButton, .forceRun) {
@@ -61,11 +53,11 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
             openConfigButton()
             reloadConfigButton(warningsAsErrors: false)
         } else {
-            Button("AeroSpace requires accessibility permission to move windows") {
+            Button("\(looperAppName) requires accessibility permission to move windows") {
                 viewModel.axPermissionStatus = .waitingWithPrompt
             }
         }
-        Button("Quit \(aeroSpaceAppName)") {
+        Button("Quit \(looperAppName)") {
             Task.startUnstructured {
                 terminationHandler?.beforeTermination()
                 terminateApp()

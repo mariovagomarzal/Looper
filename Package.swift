@@ -9,15 +9,15 @@ let swiftSettings: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "AeroSpacePackage",
+    name: "LooperPackage",
     // Runtime support for parameterized protocol types is only available in macOS 13.0.0 or newer
     // And it specifies deploymentTarget for CLI
     platforms: [.macOS(.v13)], // #MACOS_MIN_DEPLOYMENT_TARGET
     // Products define the executables and libraries a package produces, making them visible to other packages.
     products: [
-        .executable(name: "aerospace", targets: ["Cli"]),
+        .executable(name: "looper", targets: ["Cli"]),
         // Don't use this build for release, use xcode instead
-        .executable(name: "AeroSpaceApp", targets: ["AeroSpaceApp"]),
+        .executable(name: "LooperApp", targets: ["LooperApp"]),
         // We only need to expose this as a product for xcode
         .library(name: "AppBundle", targets: ["AppBundle"]),
     ],
@@ -67,7 +67,7 @@ let package = Package(
             swiftSettings: swiftSettings,
         ),
         .executableTarget(
-            name: "AeroSpaceApp",
+            name: "LooperApp",
             dependencies: [
                 .target(name: "AppBundle"),
                 .target(name: "Macros"),
