@@ -23,7 +23,7 @@ final class ConfigTest: XCTestCase {
     }
 
     func testParseDefaultConfig() {
-        let toml = try! String(contentsOf: projectRoot.appending(component: "docs/config-examples/default-config.toml"), encoding: .utf8)
+        let toml = try! String(contentsOf: projectRoot.appending(component: "resources/default-config.toml"), encoding: .utf8)
         let result = parseConfig(toml)
         assertEquals(result.errors, [])
         assertEquals(result.warnings, [])

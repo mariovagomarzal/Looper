@@ -1,5 +1,5 @@
-// FILE IS GENERATED FROM docs/looper-*.adoc files
-// TO REGENERATE THE FILE RUN generate.sh
+// FILE IS GENERATED FROM docs/commands/looper-*.adoc files
+// TO REGENERATE THE FILE RUN scripts/generate.sh
 
 let subcommandDescriptions = [
     ["  balance-sizes", "Balance sizes of all windows in the current workspace"],

@@ -3,13 +3,3 @@
 # New root .directories must be explicitly listed below
 /.*
 
-# Unignored top level .dirs
-!/.bundle
-!/.github
-
-/Gemfile.lock
-/xcode/.xcode-build
-
-# XCode User settings
-xcuserdata/
-xcshareddata/

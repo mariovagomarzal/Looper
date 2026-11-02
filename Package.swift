@@ -10,16 +10,11 @@ let swiftSettings: [SwiftSetting] = [
 
 let package = Package(
     name: "LooperPackage",
-    // Runtime support for parameterized protocol types is only available in macOS 13.0.0 or newer
-    // And it specifies deploymentTarget for CLI
-    platforms: [.macOS(.v13)], // #MACOS_MIN_DEPLOYMENT_TARGET
+    platforms: [.macOS("27.0")],
     // Products define the executables and libraries a package produces, making them visible to other packages.
     products: [
         .executable(name: "looper", targets: ["Cli"]),
-        // Don't use this build for release, use xcode instead
         .executable(name: "LooperApp", targets: ["LooperApp"]),
-        // We only need to expose this as a product for xcode
-        .library(name: "AppBundle", targets: ["AppBundle"]),
     ],
     dependencies: [
         .package(url: "https://github.com/InerziaSoft/ISSoundAdditions.git", exact: "2.0.1"),
@@ -88,6 +83,7 @@ let package = Package(
                 .target(name: "AppBundle"),
                 .target(name: "Macros"),
             ],
+            exclude: ["Fixtures"],
             swiftSettings: swiftSettings,
         ),
     ],

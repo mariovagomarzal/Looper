@@ -24,13 +24,22 @@ author's workflow.
 | Config | `~/.looper.toml` or `${XDG_CONFIG_HOME}/looper/looper.toml` |
 | Environment variables | `LOOPER_WINDOW_ID`, `LOOPER_WORKSPACE`, `LOOPER_FOCUSED_WORKSPACE`, `LOOPER_PREV_WORKSPACE` |
 
-Command reference lives in [docs/](./docs) as man page sources (`looper-<command>.adoc`), which also generate
+Command reference lives in [docs/commands/](./docs/commands) as Asciidoc sources (`looper-<command>.adoc`), which also generate
 the CLI `--help` output. For now, the [AeroSpace guide](https://nikitabobko.github.io/AeroSpace/guide) describes
 the shared concepts.
 
 ## Development
 
-See [dev-docs/development.md](./dev-docs/development.md) and [dev-docs/architecture.md](./dev-docs/architecture.md).
+Looper is a single SwiftPM package built with the Xcode toolchain; development tools come from
+[devenv](https://devenv.sh/) and tasks are [just](https://just.systems/) recipes:
+
+```sh
+devenv shell
+just run    # build and launch Looper-Debug.app
+just check  # strict build, tests and lint
+```
+
+See [docs/dev/development.md](./docs/dev/development.md) and [docs/dev/architecture.md](./docs/dev/architecture.md).
 
 ## License
 

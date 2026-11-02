@@ -1,8 +1,6 @@
 import AppBundle
 import SwiftUI
 
-// This file is shared between SPM and xcode project
-
 @main
 struct LooperApp: App {
     @StateObject var viewModel = TrayMenuModel.shared
@@ -16,7 +14,7 @@ struct LooperApp: App {
     var body: some Scene {
         menuBar(viewModel: viewModel)
         getMessageWindow(messageModel: messageModel)
-            .onChange(of: messageModel.message) { message in
+            .onChange(of: messageModel.message) { _, message in
                 if message != nil {
                     openWindow(id: messageWindowId)
                 }

@@ -74,3 +74,5 @@
 
 --enable extensionAccessControl
 --extensionacl on-declarations
+
+--swiftversion 6.4

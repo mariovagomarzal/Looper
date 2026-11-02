@@ -1,5 +1,5 @@
-// FILE IS GENERATED FROM docs/looper-*.adoc files
-// TO REGENERATE THE FILE RUN generate.sh
+// FILE IS GENERATED FROM docs/commands/looper-*.adoc files
+// TO REGENERATE THE FILE RUN scripts/generate.sh
 
 let balance_sizes_help_generated = """
     USAGE: balance-sizes [-h|--help] [--workspace <workspace>]
