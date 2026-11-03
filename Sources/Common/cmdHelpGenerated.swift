@@ -150,12 +150,12 @@ let swap_help_generated = """
                 [--wrap-around] (left|down|up|right|dfs-next|dfs-prev)
     """
 let test_not_help_generated = """
-    USAGE: test-not [-h|--help] <lhs> = <rhs>
-       OR: test-not [-h|--help] <lhs> ~= <rhs>
+    USAGE: test-not [-h|--help] [--window-id <window-id>] <lhs> = <rhs>
+       OR: test-not [-h|--help] [--window-id <window-id>] <lhs> ~= <rhs>
     """
 let test_help_generated = """
-    USAGE: test [-h|--help] <lhs> = <rhs>
-       OR: test [-h|--help] <lhs> ~= <rhs>
+    USAGE: test [-h|--help] [--window-id <window-id>] <lhs> = <rhs>
+       OR: test [-h|--help] [--window-id <window-id>] <lhs> ~= <rhs>
     """
 let trigger_binding_help_generated = """
     USAGE: trigger-binding [-h|--help] --mode <mode-id> [--] <binding>

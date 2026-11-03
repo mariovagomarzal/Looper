@@ -21,7 +21,7 @@ final class RunCallbackCommandTest: XCTestCase {
             "run-callback --window-id 42 on-window-detected",
             RunCallbackCmdArgs(rawArgs: [])
                 .with(\.callback, .initialized(.onWindowDetected))
-                .with(\.windowId, 42),
+                .with(\.windowId, .id(42)),
         )
         testParseSingleCommandSucc(
             "run-callback on-focus-changed",

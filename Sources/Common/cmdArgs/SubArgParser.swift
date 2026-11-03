@@ -1,7 +1,7 @@
 typealias SubArgParser<Root, Value> = ArgParser<SubArgParserInput, Root, Value, ()>
 
-func windowIdSubArgParser<T: CmdArgs>() -> SubArgParser<T, OpaqueWindowId?> {
-    singleValueSubArgParser(\T.windowId, "<window-id>", parseWindowId)
+func windowIdSubArgParser<T: CmdArgs>() -> SubArgParser<T, WindowTarget?> {
+    singleValueSubArgParser(\T.windowId, "<window-id>", parseWindowTarget)
 }
 func workspaceSubArgParser<T: CmdArgs>() -> SubArgParser<T, WorkspaceName?> {
     singleValueSubArgParser(\T.workspaceName, "<workspace>", WorkspaceName.parse)

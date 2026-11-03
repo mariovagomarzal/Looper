@@ -9,8 +9,8 @@ include::util/man-attributes.adoc[]
 == Synopsis
 [verse]
 // tag::synopsis[]
-looper test [-h|--help] <lhs> = <rhs>
-looper test [-h|--help] <lhs> ~= <rhs>
+looper test [-h|--help] [--window-id <window-id>] <lhs> = <rhs>
+looper test [-h|--help] [--window-id <window-id>] <lhs> ~= <rhs>
 
 // end::synopsis[]
 
@@ -33,6 +33,15 @@ include::./util/conditional-examples-header.adoc[]
 Test if the application ID equals to Chrome: `looper test %{app-bundle-id} = com.google.Chrome`
 
 Test if the application name contains "chrome" (case insensitive): `looper test %{app-name} ~= chrome`
+
+// =========================================================== Options
+include::util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+--window-id <window-id>::
+Evaluate the expression against the specified window instead of the focused window.
+`<window-id>` is a window ID, or one of `focused`, `pointer` or `wheel` (see the `--window-id` flag of other commands).
 
 // =========================================================== Arguments
 include::./util/conditional-arguments-header.adoc[]

@@ -4,7 +4,7 @@ public struct TestNotCmdArgs: CmdArgs {
     public static let parser: CmdParser<Self> = .init(
         kind: .testNot,
         help: test_not_help_generated,
-        flags: [:],
+        flags: [:], // Parsed by TestCmdArgs, including --window-id
         posArgs: [],
     )
     public typealias ExitCodeType = ConditionalExitCode

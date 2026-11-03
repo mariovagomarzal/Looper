@@ -10,7 +10,8 @@ public struct TestCmdArgs: CmdArgs {
         // Alternative 2: `with-context [--window-id <window-id>] [--workspace <workspace>] <subcommand>` command
         // Alternative 3: `env [name=value]... <subcommand>` command
         // Alternative 4: --window-id and --workspace flags for looper top-level command + looper subcommand
-        flags: [:],
+        // --window-id checks the conditions against the specified window
+        flags: ["--window-id": windowIdSubArgParser()],
         posArgs: [
             newMandatoryPosArgParser(\.lhs, parseTestLhs, placeholder: "<lhs>"),
             newMandatoryPosArgParser(\.infixOperator, parseTestInfixOperator, placeholder: "<operator>"),

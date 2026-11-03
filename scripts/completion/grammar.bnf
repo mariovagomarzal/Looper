@@ -80,8 +80,8 @@ looper -h;
 
     | swap [--swap-focus|--wrap-around|--window-id <window_id>]... (left|down|up|right|dfs-next|dfs-prev) [--swap-focus|--wrap-around|--window-id <window_id>]...
 
-    | test <output_format> (=|~=) <output_format>
-    | test-not <output_format> (=|~=) <output_format>
+    | test [--window-id <window_id>] <output_format> (=|~=) <output_format>
+    | test-not [--window-id <window_id>] <output_format> (=|~=) <output_format>
 
     | true
 
@@ -116,7 +116,7 @@ looper -h;
     | subscribe [--all|--no-send-initial] <event>... [--all|--no-send-initial]
     ;
 
-<window_id> ::= {{{ looper list-windows --all --format '%{window-id}%{tab}%{app-name} - %{window-title}' }}};
+<window_id> ::= focused | pointer | wheel | {{{ looper list-windows --all --format '%{window-id}%{tab}%{app-name} - %{window-title}' }}};
 <binding> ::= {{{ looper config --get mode --keys | xargs -I{} looper config --get mode.{}.binding --keys }}};
 <mode_id> ::= {{{ looper config --get mode --keys }}};
 <wheel_profile> ::= {{{ looper config --get wheel.profiles --keys }}};

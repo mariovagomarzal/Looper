@@ -1,10 +1,22 @@
 import Common
 
+struct WheelGestureEnv {
+    /// The window that was under the mouse pointer when the wheel opened (`--window-id wheel`)
+    let windowId: OpaqueWindowId?
+}
+
 struct CmdEnv {
     var windowId: OpaqueWindowId? = nil
     var workspaceName: String? = nil
+    /// Set while running the actions and conditions of a wheel gesture
+    var wheel: WheelGestureEnv? = nil
 
     static let defaultEnv: CmdEnv = .init()
+
+    consuming func withWheel(_ wheel: WheelGestureEnv) -> CmdEnv {
+        self.wheel = wheel
+        return self
+    }
 
     consuming func withFocus(_ focus: LiveFocus) -> Self {
         return switch focus.asLeaf {

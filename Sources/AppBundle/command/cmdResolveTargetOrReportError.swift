@@ -10,12 +10,7 @@ extension CmdArgs {
     func resolveTargetOrReportError(_ env: CmdEnv, _ io: CmdIo) -> LiveFocus? {
         // Flags
         if let windowId {
-            if let wi = Window.get(byId: windowId) {
-                return wi.toLiveFocusOrReportError(io)
-            } else {
-                io.err("Invalid <window-id> \(windowId) passed to --window-id")
-                return nil
-            }
+            return windowId.resolveOrReportError(env, io)?.toLiveFocusOrReportError(io)
         }
         if let workspace {
             return workspace.toLiveFocus()

@@ -22,6 +22,11 @@ final class WheelController {
     /// Bumped by every open request and every finished gesture, so that a request whose variant resolved too late is
     /// dropped
     private var openRequest = 0
+    /// The window under the pointer when the gesture started (`--window-id wheel`)
+    private var gestureWindowId: OpaqueWindowId? = nil
+
+    /// The environment of the actions and conditions of the current gesture
+    private var gestureEnv: CmdEnv { CmdEnv.defaultEnv.withWheel(WheelGestureEnv(windowId: gestureWindowId)) }
 
     private init() {}
 
@@ -41,12 +46,16 @@ final class WheelController {
     func request(profile base: String) {
         openRequest += 1
         let request = openRequest
+        if !isOpen {
+            // A new gesture. Captured before the pointer moves away
+            gestureWindowId = windowUnderPointer()?.windowId
+        }
         guard config.wheel.variants[base]?.isEmpty == false else {
             open(profile: base)
             return
         }
         Task.startUnstructured { @MainActor in
-            let profile = await resolveWheelVariant(base)
+            let profile = await resolveWheelVariant(base, WheelController.shared.gestureEnv)
             // The gesture may have finished, or another profile may have been requested, while conditions ran
             guard WheelController.shared.openRequest == request else { return }
             WheelController.shared.open(profile: profile)
@@ -115,6 +124,7 @@ final class WheelController {
         let selection = model.selection
         let profileName = profileName
         let action = selection.slot.flatMap { profile.action($0, finish) }
+        let env = gestureEnv
         close()
         guard let slot = selection.slot else {
             wheelLog.notice("cancelled: \(finish.rawValue, privacy: .public) with no selection")
@@ -127,7 +137,7 @@ final class WheelController {
         wheelLog.notice("action: \(profileName, privacy: .public) \(slot.rawValue, privacy: .public) \(finish.rawValue, privacy: .public)")
         Task.startUnstructured { @MainActor in
             try await runLightSession(.wheelAction, .checkServerIsEnabledOrDie()) { () throws in
-                _ = await action.run(.defaultEnv, .emptyStdin)
+                _ = await action.run(env, .emptyStdin)
             }
         }
     }
@@ -167,15 +177,16 @@ final class WheelController {
     }
 }
 
-/// The variant of the profile to open: the first variant (in config order) whose condition succeeds for the focused
-/// window, recursively. Conditions that fail to evaluate (e.g. window variables without a focused window) don't match
-@MainActor func resolveWheelVariant(_ base: String) async -> String {
+/// The variant of the profile to open: the first variant (in config order) whose condition succeeds, recursively.
+/// Like any command, conditions check the focused window unless they pass '--window-id'. Conditions that fail to
+/// evaluate (e.g. window variables without a focused window) don't match
+@MainActor func resolveWheelVariant(_ base: String, _ env: CmdEnv) async -> String {
     var current = base
     var visited: Set<String> = [base]
     search: while true {
         for variant in config.wheel.variants[current] ?? [] where !visited.contains(variant) {
             guard let condition = config.wheel.profiles[variant]?.condition else { continue }
-            let result = await condition.run(CmdEnv.defaultEnv.withFocus(globalFocus), .emptyStdin)
+            let result = await condition.run(env, .emptyStdin)
             switch result.exitCode.rawValue {
                 case 0:
                     visited.insert(variant)

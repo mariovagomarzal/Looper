@@ -397,9 +397,9 @@ final class WheelTest: XCTestCase {
         assertTrue(Workspace.get(byName: "a").focusWorkspace())
 
         // The first matching variant wins, recursively. Window conditions can't match on an empty workspace
-        let resolved = await resolveWheelVariant("default")
+        let resolved = await resolveWheelVariant("default", .defaultEnv)
         XCTAssertEqual(resolved, "nested")
         // A variant requested by name skips its own condition
-        assertEquals(await resolveWheelVariant("other-workspace"), "other-workspace")
+        assertEquals(await resolveWheelVariant("other-workspace", .defaultEnv), "other-workspace")
     }
 }

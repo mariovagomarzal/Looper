@@ -9,8 +9,8 @@ include::util/man-attributes.adoc[]
 == Synopsis
 [verse]
 // tag::synopsis[]
-looper test-not [-h|--help] <lhs> = <rhs>
-looper test-not [-h|--help] <lhs> ~= <rhs>
+looper test-not [-h|--help] [--window-id <window-id>] <lhs> = <rhs>
+looper test-not [-h|--help] [--window-id <window-id>] <lhs> ~= <rhs>
 
 // end::synopsis[]
 

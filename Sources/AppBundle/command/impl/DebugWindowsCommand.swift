@@ -31,10 +31,8 @@ struct DebugWindowsCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = false
 
     func run(_ env: CmdEnv, _ io: CmdIo) async -> BinaryExitCode {
-        if let windowId = args.windowId {
-            guard let window = Window.get(byId: windowId) else {
-                return .fail(io.err("Can't find window with the specified window-id: \(windowId)"))
-            }
+        if let windowTarget = args.windowId {
+            guard let window = windowTarget.resolveOrReportError(env, io) else { return .fail }
             let nativeWindowId = window.macAppUnsafe.nativeWindowId(of: window.windowId).orDie()
             guard let a = try? await dumpWindowDebugInfo(window, nativeWindowId, .nonCancellable) else { return .fail(io.err(bugPrompt())) }
             io.out(a + "\n")

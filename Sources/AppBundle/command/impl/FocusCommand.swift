@@ -32,12 +32,9 @@ struct FocusCommand: Command {
                 } else {
                     return hitWorkspaceBoundaries(target, io, args, direction)
                 }
-            case .windowId(let windowId):
-                if let windowToFocus = Window.get(byId: windowId) {
-                    return .from(bool: windowToFocus.focusWindow())
-                } else {
-                    return .fail(io.err("Can't find window with ID \(windowId)"))
-                }
+            case .windowId(let windowTarget):
+                guard let windowToFocus = windowTarget.resolveOrReportError(env, io) else { return .fail }
+                return .from(bool: windowToFocus.focusWindow())
             case .dfsIndex(let dfsIndex):
                 if let windowToFocus = target.workspace.rootTilingContainer.allInhabitedLeafWindowsRecursive.getOrNil(atIndex: Int(dfsIndex)) {
                     return .from(bool: windowToFocus.focusWindow())
