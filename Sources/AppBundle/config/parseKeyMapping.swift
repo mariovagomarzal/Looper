@@ -7,22 +7,51 @@ private let keyMappingParser: [String: any ParserProtocol<KeyMapping>] = [
 
 struct KeyMapping: Withable, Equatable, Sendable {
     enum Preset: String, CaseIterable, Sendable {
+        /// Single characters ('a', 'ñ', '-') follow the active keyboard layout. Key names ('semicolon') are ANSI
+        /// physical positions
+        case system
+        /// Every key notation is an ANSI physical position
         case qwerty, dvorak, colemak
     }
 
     init(
-        preset: Preset = .qwerty,
+        preset: Preset = .system,
         rawKeyNotationToKeyCode: [String: Key] = [:],
     ) {
         self.preset = preset
         self.rawKeyNotationToKeyCode = rawKeyNotationToKeyCode
     }
 
-    fileprivate var preset: Preset = .qwerty
+    fileprivate var preset: Preset = .system
     fileprivate var rawKeyNotationToKeyCode: [String: Key] = [:]
 
-    func resolve() -> [String: Key] {
-        getKeysPreset(preset) + rawKeyNotationToKeyCode
+    func resolve() -> KeyNotationResolver {
+        KeyNotationResolver(
+            physical: getKeysPreset(preset) + rawKeyNotationToKeyCode,
+            custom: rawKeyNotationToKeyCode,
+            charactersFollowLayout: preset == .system,
+        )
+    }
+}
+
+struct KeyNotationResolver: Sendable {
+    fileprivate let physical: [String: Key]
+    fileprivate let custom: [String: Key]
+    fileprivate let charactersFollowLayout: Bool
+
+    func resolve(_ notation: String) -> HotkeyKey? {
+        if let key = custom[notation] { return .physical(key) }
+        if charactersFollowLayout, notation.count == 1, let character = notation.first {
+            return .character(character.lowercasedIfSingle)
+        }
+        return physical[notation].map(HotkeyKey.physical)
+    }
+}
+
+extension Character {
+    var lowercasedIfSingle: Character {
+        let lowercased = lowercased()
+        return lowercased.count == 1 ? lowercased.first ?? self : self
     }
 }
 

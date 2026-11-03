@@ -6,12 +6,48 @@ import XCTest
 @MainActor
 final class HotkeyTest: XCTestCase {
     private func parse(_ raw: String) -> HotkeyModifiers? {
-        try? parseBinding(raw, .emptyRoot, keyNotationToKeyCode).get().0
+        try? parseBinding(raw, .emptyRoot, KeyMapping().resolve()).get().0
+    }
+
+    private func parseKey(_ raw: String, _ preset: KeyMapping.Preset = .system) -> HotkeyKey? {
+        try? parseBinding(raw, .emptyRoot, KeyMapping(preset: preset).resolve()).get().1
     }
 
     private func binding(_ raw: String) -> HotkeyBinding {
-        let (modifiers, key) = try! parseBinding(raw, .emptyRoot, keyNotationToKeyCode).get()
+        let (modifiers, key) = try! parseBinding(raw, .emptyRoot, KeyMapping().resolve()).get()
         return HotkeyBinding(modifiers, key, .empty, descriptionWithKeyNotation: raw)
+    }
+
+    func testParseKeys() {
+        assertEquals(parseKey("lalt-h"), .character("h"))
+        assertEquals(parseKey("lalt-H"), .character("h"))
+        assertEquals(parseKey("lalt-ñ"), .character("ñ"))
+        assertEquals(parseKey("lalt-?"), .character("?")) // Valid, even if no key types it without modifiers
+        assertEquals(parseKey("lalt--"), .character("-"))
+        assertEquals(parseKey("lalt-shift--"), .character("-"))
+        assertEquals(parseKey("-"), .character("-"))
+        // Key names are ANSI physical positions
+        assertEquals(parseKey("lalt-semicolon"), .physical(.semicolon))
+        assertEquals(parseKey("lalt-tab"), .physical(.tab))
+        // Other presets keep single characters as ANSI physical positions
+        assertEquals(parseKey("lalt-h", .qwerty), .physical(.h))
+        assertNil(parseKey("lalt-ñ", .qwerty))
+        assertNil(parseKey("lalt-unknownKey"))
+        assertEquals(parse("lalt-shift--"), HotkeyModifiers([.alt: .left, .shift: .either]))
+        assertEquals(binding("lalt--").descriptionWithKeyCode, "lalt--")
+    }
+
+    func testCharactersResolveWithActiveLayout() {
+        // Spanish ISO: 'ñ' is on the ANSI semicolon key and '-' on the ANSI slash key
+        let spanish = KeyboardLayout(["ñ": Key.semicolon.keyCode, "-": Key.slash.keyCode, "h": Key.h.keyCode])
+        assertEquals(spanish.keyCode(for: .character("ñ")), Key.semicolon.keyCode)
+        assertEquals(spanish.keyCode(for: .character("-")), Key.slash.keyCode)
+        assertEquals(spanish.keyCode(for: .character("H")), Key.h.keyCode)
+        assertNil(spanish.keyCode(for: .character("?")))
+        assertEquals(spanish.keyCode(for: .physical(.minus)), Key.minus.keyCode)
+
+        assertEquals(KeyboardLayout.ansi.keyCode(for: .character("-")), Key.minus.keyCode)
+        assertNil(KeyboardLayout.ansi.keyCode(for: .character("ñ")))
     }
 
     func testParseModifiers() {
@@ -79,10 +115,7 @@ final class HotkeyTest: XCTestCase {
         XCTAssertNil(matchHotkeyBinding([left], PressedModifiers(right: [.alt])))
     }
 
-    func testKeyCodesRoundTrip() {
+    func testKeyCodesAreUnique() {
         assertEquals(Key.allCases.count, Set(Key.allCases.map(\.keyCode)).count)
-        for key in Key.allCases {
-            assertEquals(Key(keyCode: key.keyCode), key)
-        }
     }
 }

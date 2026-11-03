@@ -44,7 +44,7 @@ private let slash = "slash"
 
 func getKeysPreset(_ layout: KeyMapping.Preset) -> [String: Key] {
     return switch layout {
-        case .qwerty: keyNotationToKeyCode
+        case .system, .qwerty: keyNotationToKeyCode
         case .dvorak: dvorakMap
         case .colemak: colemakMap
     }

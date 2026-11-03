@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Common
 import Synchronization
 
@@ -7,17 +8,30 @@ import Synchronization
 
 @MainActor var activeMode: String? = mainModeId
 @MainActor func activateMode_nonCancellable(_ targetMode: String?) async {
-    let targetBindings = targetMode.flatMap { config.modes[$0] }?.bindings ?? [:]
-    hotkeyTapState.withLock { state in
-        state.mode = targetMode
-        state.bindingsByKey = Dictionary(grouping: targetBindings.values, by: \.keyCode)
-    }
-    startHotkeyEventTapIfNeeded()
     let oldMode = activeMode
     activeMode = targetMode
+    syncHotkeyTapBindings()
+    startHotkeyEventTapIfNeeded()
     if oldMode != targetMode {
         broadcastEvent(.modeChanged(mode: targetMode))
         _ = await config.onModeChanged.run(.defaultEnv, .emptyStdin)
+    }
+}
+
+/// Resolves the bindings of the active mode to key codes with the active keyboard layout
+@MainActor private func syncHotkeyTapBindings() {
+    let mode = activeMode
+    let bindings = mode.flatMap { config.modes[$0] }?.bindings.values ?? [:].values
+    let layout = currentKeyboardLayout
+    var bindingsByKeyCode: [UInt16: [HotkeyBinding]] = [:]
+    for binding in bindings {
+        // Characters that no key types without modifiers can't be triggered
+        guard let keyCode = layout.keyCode(for: binding.key) else { continue }
+        bindingsByKeyCode[keyCode, default: []].append(binding)
+    }
+    hotkeyTapState.withLock { state in
+        state.mode = mode
+        state.bindingsByKeyCode = bindingsByKeyCode
     }
 }
 
@@ -30,7 +44,7 @@ func matchHotkeyBinding(_ candidates: [HotkeyBinding], _ pressed: PressedModifie
 
 private struct HotkeyTapState: Sendable {
     var mode: String? = nil
-    var bindingsByKey: [Key: [HotkeyBinding]] = [:]
+    var bindingsByKeyCode: [UInt16: [HotkeyBinding]] = [:]
     /// Key ups of swallowed key downs are swallowed too, so that apps never see half of a key press
     var swallowedKeyUps: Set<UInt16> = []
 }
@@ -42,6 +56,15 @@ private let hotkeyTapState = Mutex(HotkeyTapState())
 @MainActor private func startHotkeyEventTapIfNeeded() {
     if isUnitTest || isHotkeyTapStarted { return }
     isHotkeyTapStarted = true
+    DistributedNotificationCenter.default().addObserver(
+        forName: Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
+        object: nil,
+        queue: .main,
+    ) { _ in
+        MainActor.assumeIsolated {
+            if refreshKeyboardLayout() { syncHotkeyTapBindings() }
+        }
+    }
     let thread = Thread { runHotkeyEventTap() }
     thread.name = "looper-hotkeys"
     thread.qualityOfService = .userInteractive
@@ -98,10 +121,9 @@ private func hotkeyTapCallback(
 
 private func handleKeyDown(_ event: CGEvent) -> Bool {
     let keyCode = UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
-    guard let key = Key(keyCode: keyCode) else { return false }
     let pressed = PressedModifiers(event.flags)
     let match: (mode: String, binding: HotkeyBinding)? = hotkeyTapState.withLock { state in
-        guard let mode = state.mode, let binding = matchHotkeyBinding(state.bindingsByKey[key] ?? [], pressed) else { return nil }
+        guard let mode = state.mode, let binding = matchHotkeyBinding(state.bindingsByKeyCode[keyCode] ?? [], pressed) else { return nil }
         state.swallowedKeyUps.insert(keyCode)
         return (mode, binding)
     }

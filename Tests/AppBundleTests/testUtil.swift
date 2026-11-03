@@ -89,11 +89,11 @@ extension MoveNodeToWorkspaceCmdArgs {
 }
 
 extension HotkeyBinding {
-    init(_ modifiers: HotkeyModifiers, _ keyCode: Key, _ commands: Shell<any Command>) {
+    init(_ modifiers: HotkeyModifiers, _ key: HotkeyKey, _ commands: Shell<any Command>) {
         let descriptionWithKeyNotation = modifiers.isEmpty
-            ? keyCode.toString()
-            : modifiers.toString() + "-" + keyCode.toString()
-        self.init(modifiers, keyCode, commands, descriptionWithKeyNotation: descriptionWithKeyNotation)
+            ? key.toString()
+            : modifiers.toString() + "-" + key.toString()
+        self.init(modifiers, key, commands, descriptionWithKeyNotation: descriptionWithKeyNotation)
     }
 }
 

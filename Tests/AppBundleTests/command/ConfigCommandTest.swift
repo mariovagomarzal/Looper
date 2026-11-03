@@ -63,7 +63,7 @@ final class ConfigCommandTest: XCTestCase {
 
     func testAllKeys() async {
         let command = parseCommand("focus left").cmdOrDie
-        let binding = HotkeyBinding(.alt, .h, command)
+        let binding = HotkeyBinding(.alt, .character("h"), command)
         config.modes = ["main": Mode(bindings: [binding.descriptionWithKeyCode: binding])]
 
         let result = await parseCommand("config --all-keys").cmdOrDie.run(.defaultEnv, .emptyStdin)
@@ -132,7 +132,7 @@ final class ConfigCommandTest: XCTestCase {
 
     func testGetScalar() async {
         let command = parseCommand("focus left").cmdOrDie
-        let binding = HotkeyBinding(.alt, .h, command)
+        let binding = HotkeyBinding(.alt, .character("h"), command)
         config.modes = ["main": Mode(bindings: [binding.descriptionWithKeyCode: binding])]
 
         let result = await parseCommand("config --get mode.main.binding.alt-h").cmdOrDie.run(.defaultEnv, .emptyStdin)
@@ -143,7 +143,7 @@ final class ConfigCommandTest: XCTestCase {
 
     func testGetScalar_keys_fails() async {
         let command = parseCommand("focus left").cmdOrDie
-        let binding = HotkeyBinding(.alt, .h, command)
+        let binding = HotkeyBinding(.alt, .character("h"), command)
         config.modes = ["main": Mode(bindings: [binding.descriptionWithKeyCode: binding])]
 
         let result = await parseCommand("config --get mode.main.binding.alt-h --keys").cmdOrDie.run(.defaultEnv, .emptyStdin)
@@ -155,7 +155,7 @@ final class ConfigCommandTest: XCTestCase {
 
     func testGetScalar_dereference_fails() async {
         let command = parseCommand("focus left").cmdOrDie
-        let binding = HotkeyBinding(.alt, .h, command)
+        let binding = HotkeyBinding(.alt, .character("h"), command)
         config.modes = ["main": Mode(bindings: [binding.descriptionWithKeyCode: binding])]
 
         let result = await parseCommand("config --get mode.main.binding.alt-h.foo").cmdOrDie.run(.defaultEnv, .emptyStdin)

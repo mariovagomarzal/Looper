@@ -207,11 +207,4 @@ enum Key: CaseIterable, Hashable, Sendable {
             case .forwardDelete: UInt16(kVK_ForwardDelete)
         }
     }
-
-    init?(keyCode: UInt16) {
-        guard let key = keyCodeToKey[keyCode] else { return nil }
-        self = key
-    }
 }
-
-private let keyCodeToKey: [UInt16: Key] = Dictionary(uniqueKeysWithValues: Key.allCases.map { ($0.keyCode, $0) })

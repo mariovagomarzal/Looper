@@ -2,30 +2,30 @@ import Common
 
 struct HotkeyBinding: Equatable, Sendable {
     let modifiers: HotkeyModifiers
-    let keyCode: Key
+    let key: HotkeyKey
     let commands: Shell<any Command>
     let descriptionWithKeyCode: String
     let descriptionWithKeyNotation: String
 
-    init(_ modifiers: HotkeyModifiers, _ keyCode: Key, _ commands: Shell<any Command>, descriptionWithKeyNotation: String) {
+    init(_ modifiers: HotkeyModifiers, _ key: HotkeyKey, _ commands: Shell<any Command>, descriptionWithKeyNotation: String) {
         self.modifiers = modifiers
-        self.keyCode = keyCode
+        self.key = key
         self.commands = commands
         self.descriptionWithKeyCode = modifiers.isEmpty
-            ? keyCode.toString()
-            : modifiers.toString() + "-" + keyCode.toString()
+            ? key.toString()
+            : modifiers.toString() + "-" + key.toString()
         self.descriptionWithKeyNotation = descriptionWithKeyNotation
     }
 
     static func == (lhs: HotkeyBinding, rhs: HotkeyBinding) -> Bool {
         lhs.modifiers == rhs.modifiers &&
-            lhs.keyCode == rhs.keyCode &&
+            lhs.key == rhs.key &&
             lhs.descriptionWithKeyCode == rhs.descriptionWithKeyCode &&
             lhs.commands.strictEquals(rhs.commands)
     }
 }
 
-func parseBindings(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext, _ mapping: [String: Key]) -> [String: HotkeyBinding] {
+func parseBindings(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext, _ mapping: KeyNotationResolver) -> [String: HotkeyBinding] {
     guard let rawTable = raw.asDictOrNil else {
         c.errors += [expectedActualTypeDiagnostic(expected: .table, actual: raw.tomlType, backtrace)]
         return [:]
@@ -49,14 +49,37 @@ func parseBindings(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout 
     return result
 }
 
-func parseBinding(_ raw: String, _ backtrace: ConfigBacktrace, _ mapping: [String: Key]) -> ResOrConfigParseDiagnostic<(HotkeyModifiers, Key)> {
-    let rawKeys = raw.split(separator: "-")
+func parseBinding(_ raw: String, _ backtrace: ConfigBacktrace, _ mapping: KeyNotationResolver) -> ResOrConfigParseDiagnostic<(HotkeyModifiers, HotkeyKey)> {
+    // 'alt--' binds the key that types '-', which is also the separator
+    let (rawModifiers, keyNotation): ([Substring], String?) = if raw == "-" {
+        ([], "-")
+    } else if raw.hasSuffix("--") {
+        (raw.dropLast(2).split(separator: "-"), "-")
+    } else {
+        (Array(raw.split(separator: "-").dropLast()), raw.split(separator: "-").last.map(String.init))
+    }
     var modifiers = HotkeyModifiers.none
-    for token in rawKeys.dropLast() where !modifiers.add(token: String(token)) {
+    for token in rawModifiers where !modifiers.add(token: String(token)) {
         return .failure(.init(backtrace, "Can't parse modifiers in '\(raw)' binding"))
     }
-    guard let key = rawKeys.last.flatMap({ mapping[String($0)] }) else {
+    guard let key = keyNotation.flatMap(mapping.resolve) else {
         return .failure(.init(backtrace, "Can't parse the key in '\(raw)' binding"))
     }
     return .success((modifiers, key))
+}
+
+/// The key of a binding
+enum HotkeyKey: Hashable, Sendable {
+    /// A physical key, regardless of the keyboard layout
+    case physical(Key)
+    /// The key that types the character without modifiers in the active keyboard layout. If no key types it, the
+    /// binding can't be triggered
+    case character(Character)
+
+    func toString() -> String {
+        switch self {
+            case .physical(let key): key.toString()
+            case .character(let character): String(character)
+        }
+    }
 }

@@ -61,9 +61,13 @@ on-mode-changed = ""
 
 focus-follows-mouse.enabled = false
 
-# Possible values: (qwerty|dvorak|colemak)
-# See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
-key-mapping.preset = 'qwerty'
+# Possible values: (system|qwerty|dvorak|colemak)
+# 'system': single characters in bindings ('h', 'ñ', '-') are the keys that type them without modifiers in the
+#           active keyboard layout, and follow layout switches. A character that no key types without modifiers
+#           (e.g. '?') can't be triggered. Key names ('semicolon', 'tab') are always US ANSI physical positions.
+# 'qwerty', 'dvorak', 'colemak': every key notation is a physical position.
+# Use 'alt--' to bind the key that types '-'.
+key-mapping.preset = 'system'
 
 # Gaps between windows (inner-*) and between monitor edges (outer-*).
 # Possible values:

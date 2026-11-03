@@ -6,7 +6,7 @@ struct Mode: Withable, Equatable, Sendable {
     static let zero = Mode(bindings: [:])
 }
 
-func parseModes(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext, _ mapping: [String: Key]) -> [String: Mode] {
+func parseModes(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext, _ mapping: KeyNotationResolver) -> [String: Mode] {
     guard let rawTable = raw.asDictOrNil else {
         c.errors += [expectedActualTypeDiagnostic(expected: .table, actual: raw.tomlType, backtrace)]
         return [:]
@@ -21,7 +21,7 @@ func parseModes(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout Con
     return result
 }
 
-func parseMode(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext, _ mapping: [String: Key], _ key: String) -> Mode {
+func parseMode(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext, _ mapping: KeyNotationResolver, _ key: String) -> Mode {
     guard let rawTable: OrderedJson.JsonDict = raw.asDictOrNil else {
         c.errors += [expectedActualTypeDiagnostic(expected: .table, actual: raw.tomlType, backtrace)]
         return .zero
