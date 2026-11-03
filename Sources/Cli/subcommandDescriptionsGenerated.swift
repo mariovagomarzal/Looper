@@ -42,6 +42,7 @@ let subcommandDescriptions = [
     ["  trigger-binding", "Trigger Looper binding as if it was pressed by user"],
     ["  true", "Return true value"],
     ["  volume", "Manipulate volume"],
+    ["  wheel", "Open or close the radial wheel"],
     ["  workspace-back-and-forth", "Switch between the focused workspace and previously focused workspace back and forth"],
     ["  workspace", "Focus the specified workspace"],
 ]

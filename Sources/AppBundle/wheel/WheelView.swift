@@ -28,18 +28,20 @@ enum WheelDirection: Int, CaseIterable, Sendable, CustomStringConvertible {
         self = WheelDirection(rawValue: (index + 8) % 8) ?? .east
     }
 
-    var description: String {
+    var slot: WheelSlot {
         switch self {
-            case .east: "right"
-            case .northEast: "up-right"
-            case .north: "up"
-            case .northWest: "up-left"
-            case .west: "left"
-            case .southWest: "down-left"
-            case .south: "down"
-            case .southEast: "down-right"
+            case .east: .right
+            case .northEast: .upRight
+            case .north: .up
+            case .northWest: .upLeft
+            case .west: .left
+            case .southWest: .downLeft
+            case .south: .down
+            case .southEast: .downRight
         }
     }
+
+    var description: String { slot.rawValue }
 }
 
 enum WheelSelection: Equatable, Sendable, CustomStringConvertible {
@@ -64,6 +66,14 @@ enum WheelSelection: Equatable, Sendable, CustomStringConvertible {
         if case .direction(let direction) = self { direction } else { nil }
     }
 
+    var slot: WheelSlot? {
+        switch self {
+            case .none: nil
+            case .center: .center
+            case .direction(let direction): direction.slot
+        }
+    }
+
     var description: String {
         switch self {
             case .none: "none"
@@ -79,7 +89,7 @@ struct WheelStyle: Equatable {
     var thickness: CGFloat
     var colors: WheelColors
 
-    @MainActor init(_ config: WheelConfig, colors: WheelColors) {
+    @MainActor init(_ config: WheelStyleConfig, colors: WheelColors) {
         cornerFraction = CGFloat(config.cornerRadius) / 100
         thickness = CGFloat(config.thickness)
         self.colors = colors
@@ -90,7 +100,7 @@ struct WheelStyle: Equatable {
 final class WheelModel {
     var isShown = false
     var isShadowShown = false
-    var style = WheelStyle(WheelConfig(), colors: .system)
+    var style = WheelStyle(WheelStyleConfig(), colors: .system)
     private(set) var selection: WheelSelection = .none
     /// Angle of the selector in SwiftUI degrees (clockwise from east). It accumulates turns, so that animations always
     /// take the short way around
@@ -168,8 +178,17 @@ struct WheelView: View {
 
 /// A ring with rounded corners: a circle at `cornerFraction` 1, a square at 0
 struct WheelRing: Shape {
-    let cornerFraction: CGFloat
-    let thickness: CGFloat
+    var cornerFraction: CGFloat
+    var thickness: CGFloat
+
+    // Switching to a profile with another shape morphs the ring
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(cornerFraction, thickness) }
+        set {
+            cornerFraction = newValue.first
+            thickness = newValue.second
+        }
+    }
 
     func path(in rect: CGRect) -> Path {
         let side = min(rect.width, rect.height)

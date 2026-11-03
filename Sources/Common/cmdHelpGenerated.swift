@@ -168,6 +168,10 @@ let volume_help_generated = """
        OR: volume [-h|--help] (mute-toggle|mute-off|mute-on) [--no-gui]
        OR: volume [-h|--help] set <number> [--no-gui]
     """
+let wheel_help_generated = """
+    USAGE: wheel [-h|--help] open [<profile>]
+       OR: wheel [-h|--help] cancel
+    """
 let workspace_back_and_forth_help_generated = """
     USAGE: workspace-back-and-forth [-h|--help]
     """

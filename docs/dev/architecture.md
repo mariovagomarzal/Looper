@@ -64,6 +64,20 @@ bindings (`lalt-h`) win over generic ones (`alt-h`).
   thread retries until it's granted.
 - While Secure Input is on (password fields), macOS doesn't deliver key events to taps, so bindings don't work there.
 
+## Wheel subsystem
+
+Sources/AppBundle/wheel/
+
+- `WheelConfig.swift`: `wheel.*` config. Profiles are resolved at parse time: every profile starts from the style of
+  `default`, and `extends` also inherits the actions of another profile. Actions are bound per (slot, finish) pair.
+- `WheelTapMachine.swift`: pure state machine driven by the hotkey tap (held modifiers, clicks and keys). It decides
+  when the wheel opens, switches profile, finishes or cancels. Its effects are applied on the main actor.
+- `WheelController.swift`: the panel, pointer tracking (`WheelPointer`, with edge overshoot) and running the bound
+  action in a light refresh session.
+- `WheelView.swift`: SwiftUI view, selection zones (dead zone, center, eight directions) and animatable shapes.
+- `wheel open|cancel` commands open the wheel without holding keys, for bindings, scripts and the CLI.
+- Finished gestures are logged in the `wheel` category of the os log.
+
 ## Tree Model subsystem
 
 Sources/AppBundle/tree/

@@ -3,21 +3,12 @@ import Common
 import os
 import SwiftUI
 
-/// How the user finished a wheel gesture. Every (selection, trigger) pair will be able to run a different action
-enum WheelTrigger: String, Sendable {
-    /// The trigger key was released
-    case release
-    case leftClick = "left-click"
-    case rightClick = "right-click"
-    case otherClick = "other-click"
-}
-
 /// Diagnostics of wheel gestures. Read them with:
 /// `log show --last 5m --style compact --predicate 'subsystem == "com.mariovagomarzal.looper.debug" AND category == "wheel"'`
 let wheelLog = Logger(subsystem: looperAppId, category: "wheel")
 
-/// Shows the wheel under the mouse pointer and tracks the direction the pointer moves to.
-/// For now it's opened by holding fn, and finished gestures are only logged.
+/// Shows the wheel under the mouse pointer, tracks the direction the pointer moves to, and runs the action of the
+/// active profile bound to the selection and to the way the gesture finished.
 @MainActor
 final class WheelController {
     static let shared = WheelController()
@@ -25,12 +16,16 @@ final class WheelController {
     private let model = WheelModel()
     private lazy var panel: WheelPanel = WheelPanel(model: model)
     private var pointer = WheelPointer(origin: .zero)
+    private var lastOffset: CGVector = .zero
     private var mouseMonitor: Any? = nil
     private var orderOutTask: Task<(), Never>? = nil
 
     private init() {}
 
     private(set) var isOpen = false
+    private(set) var profileName = defaultWheelProfile
+
+    private var profile: WheelProfile { config.wheel.profiles[profileName] ?? WheelProfile() }
 
     /// Creates and lays out the panel ahead of time. Otherwise the first layout happens inside the appearance
     /// animation, and the wheel animates in from a corner the first time it opens
@@ -38,19 +33,21 @@ final class WheelController {
         panel.contentView?.layoutSubtreeIfNeeded()
     }
 
-    func open() {
-        if isOpen { return }
+    /// Opens the wheel with the profile, or switches the open wheel to it
+    func open(profile name: String) {
+        if isOpen {
+            switchProfile(to: name)
+            return
+        }
         isOpen = true
+        profileName = name
         orderOutTask?.cancel()
         orderOutTask = nil
 
         let origin = NSEvent.mouseLocation
         pointer = WheelPointer(origin: origin)
-        let colors = WheelAccentResolver.shared.colors(for: config.wheel.accentColor, at: origin) { @MainActor colors in
-            let model = WheelController.shared.model
-            withAnimation(.easeOut(duration: 0.2)) { model.style.colors = colors }
-        }
-        model.style = WheelStyle(config.wheel, colors: colors)
+        lastOffset = .zero
+        model.style = style(of: profile, at: origin)
         model.reset()
 
         let size = WheelMetrics.panelSize
@@ -68,17 +65,50 @@ final class WheelController {
         ) { @MainActor event in
             WheelController.shared.pointerMoved(event)
         }
+        wheelLog.notice("opened: \(name, privacy: .public)")
+    }
+
+    private func switchProfile(to name: String) {
+        guard name != profileName else { return }
+        profileName = name
+        let newStyle = style(of: profile, at: pointer.origin)
+        withAnimation(.smooth(duration: 0.25)) { model.style = newStyle }
+        // A thicker or thinner ring moves the boundary between the center and the directions
+        _ = model.select(WheelSelection(offset: lastOffset, thickness: newStyle.thickness))
+        wheelLog.notice("switched: \(name, privacy: .public)")
+    }
+
+    private func style(of profile: WheelProfile, at point: CGPoint) -> WheelStyle {
+        let name = profileName
+        let colors = WheelAccentResolver.shared.colors(for: profile.style.accentColor, at: point) { @MainActor colors in
+            // The wallpaper colors arrived. Apply them unless the profile changed meanwhile
+            let controller = WheelController.shared
+            guard controller.profileName == name else { return }
+            withAnimation(.easeOut(duration: 0.2)) { controller.model.style.colors = colors }
+        }
+        return WheelStyle(profile.style, colors: colors)
     }
 
     /// Finishes the gesture with the current selection
-    func commit(_ trigger: WheelTrigger) {
+    func commit(_ finish: WheelFinish) {
         guard isOpen else { return }
         let selection = model.selection
+        let profileName = profileName
+        let action = selection.slot.flatMap { profile.action($0, finish) }
         close()
-        if selection == .none {
-            wheelLog.notice("cancelled: \(trigger.rawValue, privacy: .public) with no selection")
-        } else {
-            performWheelAction(selection, trigger)
+        guard let slot = selection.slot else {
+            wheelLog.notice("cancelled: \(finish.rawValue, privacy: .public) with no selection")
+            return
+        }
+        guard let action, !action.isEmpty else {
+            wheelLog.notice("nothing bound: \(profileName, privacy: .public) \(slot.rawValue, privacy: .public) \(finish.rawValue, privacy: .public)")
+            return
+        }
+        wheelLog.notice("action: \(profileName, privacy: .public) \(slot.rawValue, privacy: .public) \(finish.rawValue, privacy: .public)")
+        Task.startUnstructured { @MainActor in
+            try await runLightSession(.wheelAction, .checkServerIsEnabledOrDie()) { () throws in
+                _ = await action.run(.defaultEnv, .emptyStdin)
+            }
         }
     }
 
@@ -91,6 +121,7 @@ final class WheelController {
 
     private func close() {
         isOpen = false
+        wheelDidClose()
         if let mouseMonitor { NSEvent.removeMonitor(mouseMonitor) }
         mouseMonitor = nil
 
@@ -107,17 +138,18 @@ final class WheelController {
 
     private func pointerMoved(_ event: NSEvent) {
         guard isOpen else { return }
-        let offset = pointer.move(to: NSEvent.mouseLocation, eventDelta: CGVector(dx: event.deltaX, dy: -event.deltaY))
-        let selection = WheelSelection(offset: offset, thickness: model.style.thickness)
-        if model.select(selection), selection != .none, config.wheel.haptics {
+        lastOffset = pointer.move(to: NSEvent.mouseLocation, eventDelta: CGVector(dx: event.deltaX, dy: -event.deltaY))
+        let selection = WheelSelection(offset: lastOffset, thickness: model.style.thickness)
+        if model.select(selection), selection != .none, profile.style.haptics {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         }
     }
 }
 
-/// The single entry point of wheel actions. Nothing is bound yet, so it only logs what would run
-@MainActor private func performWheelAction(_ selection: WheelSelection, _ trigger: WheelTrigger) {
-    wheelLog.notice("action: \(selection.description, privacy: .public) via \(trigger.rawValue, privacy: .public)")
+extension Shell {
+    fileprivate var isEmpty: Bool {
+        if case .empty = self { true } else { false }
+    }
 }
 
 /// Tracks the pointer offset from where the wheel opened.

@@ -29,9 +29,37 @@ import Synchronization
         guard let keyCode = layout.keyCode(for: binding.key) else { continue }
         bindingsByKeyCode[keyCode, default: []].append(binding)
     }
+    let wheelTriggers = config.wheel.triggers
+    let wheelReleaseDelay = config.wheel.releaseDelay
     hotkeyTapState.withLock { state in
         state.mode = mode
         state.bindingsByKeyCode = bindingsByKeyCode
+        state.wheelTriggers = wheelTriggers
+        state.wheelReleaseDelay = wheelReleaseDelay
+    }
+}
+
+/// The wheel was opened by a command, so clicks and keys must finish it
+@MainActor func wheelDidOpenFromCommand() {
+    hotkeyTapState.withLock { $0.wheel.openedByCommand() }
+}
+
+@MainActor func wheelDidClose() {
+    hotkeyTapState.withLock { $0.wheel.closed() }
+}
+
+private func apply(_ effect: WheelTapEffect?) {
+    guard let effect else { return }
+    Task.startUnstructured { @MainActor in
+        switch effect {
+            case .open(let profile): WheelController.shared.open(profile: profile)
+            case .switchLater(_, let id):
+                let delay = hotkeyTapState.withLock { $0.wheelReleaseDelay }
+                try? await Task.sleep(for: .milliseconds(delay))
+                apply(hotkeyTapState.withLock { $0.wheel.confirmPendingSwitch(id) })
+            case .finish(let finish): WheelController.shared.commit(finish)
+            case .cancel(let reason): WheelController.shared.cancel(reason)
+        }
     }
 }
 
@@ -47,8 +75,9 @@ private struct HotkeyTapState: Sendable {
     var bindingsByKeyCode: [UInt16: [HotkeyBinding]] = [:]
     /// Key ups of swallowed key downs are swallowed too, so that apps never see half of a key press
     var swallowedKeyUps: Set<UInt16> = []
-    /// fn is held and the wheel is open
-    var isWheelHeld = false
+    var wheel = WheelTapMachine()
+    var wheelTriggers: [WheelTriggerBinding] = []
+    var wheelReleaseDelay = 0
     /// Mouse ups of clicks that finished a wheel gesture
     var swallowedMouseUps: Set<UInt32> = []
 }
@@ -135,53 +164,45 @@ private func hotkeyTapCallback(
     return swallow ? nil : unsafe Unmanaged.passUnretained(event)
 }
 
-/// Holding fn opens the wheel and releasing it finishes the gesture. fn is never swallowed, so fn shortcuts keep
-/// working
+/// Holding the modifiers of a wheel trigger opens the wheel, and releasing them finishes the gesture. Modifiers are never
+/// swallowed, so shortcuts that use them keep working
 private func handleFlagsChanged(_ event: CGEvent) {
-    let isFnDown = event.flags.contains(.maskSecondaryFn)
-    let change: Bool? = hotkeyTapState.withLock { state in
-        if isFnDown, !state.isWheelHeld, state.mode != nil, PressedModifiers(event.flags) == PressedModifiers() {
-            state.isWheelHeld = true
-            return true
-        }
-        if !isFnDown, state.isWheelHeld {
-            state.isWheelHeld = false
-            return false
-        }
-        return nil
-    }
-    switch change {
-        case true?: Task.startUnstructured { @MainActor in WheelController.shared.open() }
-        case false?: Task.startUnstructured { @MainActor in WheelController.shared.commit(.release) }
-        case nil: break
-    }
+    let fnDown = event.flags.contains(.maskSecondaryFn)
+    let pressed = PressedModifiers(event.flags)
+    apply(hotkeyTapState.withLock { state in
+        state.wheel.modifiersChanged(
+            fnDown: fnDown,
+            pressed,
+            state.wheelTriggers,
+            enabled: state.mode != nil,
+            delaysReleases: state.wheelReleaseDelay > 0,
+        )
+    })
 }
 
 /// A click while the wheel is open finishes the gesture. The click never reaches the app under the pointer
 private func handleMouseDown(_ type: CGEventType) -> Bool {
-    let (trigger, mouseUp): (WheelTrigger, CGEventType) = switch type {
+    let (finish, mouseUp): (WheelFinish, CGEventType) = switch type {
         case .leftMouseDown: (.leftClick, .leftMouseUp)
         case .rightMouseDown: (.rightClick, .rightMouseUp)
         default: (.otherClick, .otherMouseUp)
     }
-    let finishesWheel = hotkeyTapState.withLock { state in
-        guard state.isWheelHeld else { return false }
-        state.isWheelHeld = false
-        state.swallowedMouseUps.insert(mouseUp.rawValue)
-        return true
+    let effect = hotkeyTapState.withLock { state in
+        let effect = state.wheel.click(finish)
+        if effect != nil { state.swallowedMouseUps.insert(mouseUp.rawValue) }
+        return effect
     }
-    if finishesWheel { Task.startUnstructured { @MainActor in WheelController.shared.commit(trigger) } }
-    return finishesWheel
+    apply(effect)
+    return effect != nil
 }
 
 private func handleKeyDown(_ event: CGEvent) -> Bool {
     let keyCode = UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
-    // A key pressed together with fn (fn-arrow, fn-delete...) is a regular shortcut, not a wheel gesture
-    let cancelsWheel = hotkeyTapState.withLock { state in
-        defer { state.isWheelHeld = false }
-        return state.isWheelHeld
-    }
-    if cancelsWheel { Task.startUnstructured { @MainActor in WheelController.shared.cancel("key pressed") } }
+    // A key pressed together with the trigger modifiers (fn-arrow, fn-delete...) is a regular shortcut, not a wheel
+    // gesture
+    let wheel = hotkeyTapState.withLock { $0.wheel.keyDown(isEscape: keyCode == UInt16(kVK_Escape)) }
+    apply(wheel.effect)
+    if wheel.swallow { return true }
     let pressed = PressedModifiers(event.flags)
     let match: (mode: String, binding: HotkeyBinding)? = hotkeyTapState.withLock { state in
         guard let mode = state.mode, let binding = matchHotkeyBinding(state.bindingsByKeyCode[keyCode] ?? [], pressed) else { return nil }

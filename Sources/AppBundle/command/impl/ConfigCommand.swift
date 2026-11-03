@@ -20,7 +20,7 @@ struct ConfigCommand: Command {
                 let configMap = buildConfigMap()
                 var allKeys: [String] = []
                 configMap.dumpAllKeysRecursive(path: ".", result: &allKeys)
-                return .succ(io.out(allKeys.joined(separator: "\n")))
+                return .succ(io.out(allKeys.sorted().joined(separator: "\n")))
             case .configPath:
                 return .succ(io.out(configUrl.absoluteURL.path))
         }
@@ -45,7 +45,7 @@ extension String {
             case .scalar(let scalar):
                 return .fail(io.err("--keys flag cannot be applied to scalar object '\(scalar)'"))
             case .map(let map):
-                configMap = .array(map.keys.map { .scalar(.string($0)) })
+                configMap = .array(map.keys.sorted().map { .scalar(.string($0)) })
             case .array(let array):
                 configMap = .array((0 ..< array.count).map { .scalar(.int($0)) })
         }
@@ -135,7 +135,19 @@ extension Shell<any Command> {
         }
         return .map(["binding": .map(keyNotationToScript)])
     }
-    return .map(["mode": .map(mode)])
+    let profiles = config.wheel.profiles.mapValues { (profile: WheelProfile) -> ConfigMapValue in
+        let actions = Dictionary(uniqueKeysWithValues: profile.actions.map { slot, finishes in
+            (slot.rawValue, ConfigMapValue.map(Dictionary(uniqueKeysWithValues: finishes.map { finish, commands in
+                (finish.rawValue, ConfigMapValue.scalar(.string(commands.shellOfCommandsDescription)))
+            })))
+        })
+        return .map(["actions": .map(actions)])
+    }
+    let triggers = Dictionary(config.wheel.triggers.map { ($0.chord.description, ConfigMapValue.scalar(.string($0.profile))) }) { $1 }
+    return .map([
+        "mode": .map(mode),
+        "wheel": .map(["profiles": .map(profiles), "triggers": .map(triggers)]),
+    ])
 }
 
 enum ConfigScalarValue: Encodable {

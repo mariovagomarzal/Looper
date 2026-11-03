@@ -94,6 +94,32 @@ wheel.accent-color = 'system'
 # Trackpad haptic feedback when the selection changes
 wheel.haptics = true
 
+# Hold these modifiers to open the wheel with a profile, and release them to run the selected action.
+# While the wheel is open, the profile follows the held modifiers (e.g. press shift on top of fn).
+# Modifiers: fn, cmd, alt, ctrl, shift, and their sided variants (lalt, ralt...).
+# Fallback value (if you omit the table): wheel.triggers = { fn = 'default' }
+wheel.triggers.fn = 'default'
+# Fingers never release several keys at once. When releasing a modifier would switch to another profile (e.g. shift
+# before fn), the switch waits this many milliseconds: if the rest is released meanwhile, the action of the profile
+# that was shown runs. From 0 to 1000
+wheel.release-delay = 150
+
+# Wheel profiles. 'default' always exists and uses the style above. Other profiles inherit that style and
+# override it key by key. With 'extends = <profile>', they also inherit the actions of that profile.
+# Actions are bound per slot: center, up, down, left, right, up-left, up-right, down-left, down-right.
+# A plain command runs on release. A table binds every way to finish the gesture separately:
+# release, left-click, right-click, other-click. Unbound actions do nothing, and '' unbinds an inherited one.
+#
+# [wheel.profiles.default.actions]
+# left = 'move left'
+# right = { release = 'move right', left-click = 'move-node-to-monitor right' }
+#
+# [wheel.profiles.workspaces]
+# accent-color = '#e8a33d'
+# [wheel.profiles.workspaces.actions]
+# left = 'workspace prev'
+# right = 'workspace next'
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented

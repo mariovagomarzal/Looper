@@ -91,6 +91,8 @@ looper -h;
     | volume [--no-gui] (up|down) [--no-gui]
     | volume [--no-gui] (mute-toggle|mute-on|mute-off) [--no-gui]
     | volume [--no-gui] set <number> [--no-gui]
+    | wheel open [<wheel_profile>]
+    | wheel cancel
 
     | workspace [--auto-back-and-forth|--fail-if-noop]... <workspace> [--auto-back-and-forth|--fail-if-noop]...
     | workspace [--wrap-around|--stdin|--no-stdin]... (next|prev) [--wrap-around|--stdin|--no-stdin]...
@@ -117,6 +119,7 @@ looper -h;
 <window_id> ::= {{{ looper list-windows --all --format '%{window-id}%{tab}%{app-name} - %{window-title}' }}};
 <binding> ::= {{{ looper config --get mode --keys | xargs -I{} looper config --get mode.{}.binding --keys }}};
 <mode_id> ::= {{{ looper config --get mode --keys }}};
+<wheel_profile> ::= {{{ looper config --get wheel.profiles --keys }}};
 <workspace> ::= {{{ looper list-workspaces --monitor all --empty no }}};
 <number> ::= {{{ true }}};
 <monitor_pattern> ::= {{{ true }}};

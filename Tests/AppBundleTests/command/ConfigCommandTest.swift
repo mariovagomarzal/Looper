@@ -69,10 +69,23 @@ final class ConfigCommandTest: XCTestCase {
         let result = await parseCommand("config --all-keys").cmdOrDie.run(.defaultEnv, .emptyStdin)
         assertEquals(result.exitCode.rawValue, 0)
         assertEquals(result.stderr, [])
-        // Single mode + single binding => dict iteration order doesn't affect the output.
         assertEquals(
             result.stdout,
-            [".\nmode\nmode.main\nmode.main.binding\nmode.main.binding.alt-h"],
+            [
+                """
+                .
+                mode
+                mode.main
+                mode.main.binding
+                mode.main.binding.alt-h
+                wheel
+                wheel.profiles
+                wheel.profiles.default
+                wheel.profiles.default.actions
+                wheel.triggers
+                wheel.triggers.fn
+                """,
+            ],
         )
     }
 
@@ -91,12 +104,18 @@ final class ConfigCommandTest: XCTestCase {
         let result = await parseCommand("config --get . --keys").cmdOrDie.run(.defaultEnv, .emptyStdin)
         assertEquals(result.exitCode.rawValue, 0)
         assertEquals(result.stderr, [])
-        assertEquals(result.stdout, ["mode"])
+        assertEquals(result.stdout, ["mode\nwheel"])
     }
 
     func testGetRoot_json() async {
         config.modes = ["main": Mode(bindings: [:])]
-        let expectedMap: ConfigMapValue = .map(["mode": .map(["main": .map(["binding": .map([:])])])])
+        let expectedMap: ConfigMapValue = .map([
+            "mode": .map(["main": .map(["binding": .map([:])])]),
+            "wheel": .map([
+                "profiles": .map(["default": .map(["actions": .map([:])])]),
+                "triggers": .map(["fn": .scalar(.string("default"))]),
+            ]),
+        ])
         let expectedJson = JSONEncoder.looperDefault.encodeToString(expectedMap)
 
         let result = await parseCommand("config --get . --json").cmdOrDie.run(.defaultEnv, .emptyStdin)
@@ -109,7 +128,7 @@ final class ConfigCommandTest: XCTestCase {
         config.modes = ["main": Mode(bindings: [:])]
         // --keys converts the map into an array of string-scalar keys, which is then JSON-encoded.
         let expected = JSONEncoder.looperDefault.encodeToString(
-            ConfigMapValue.array([.scalar(.string("mode"))]),
+            ConfigMapValue.array([.scalar(.string("mode")), .scalar(.string("wheel"))]),
         )
 
         let result = await parseCommand("config --get . --keys --json").cmdOrDie.run(.defaultEnv, .emptyStdin)
