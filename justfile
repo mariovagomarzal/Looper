@@ -23,7 +23,9 @@ app:
 # Build the debug app bundle and (re)launch it.
 run: app
     -osascript -e 'quit app "Looper-Debug"'
-    open {{debug_app}}
+    # 'open' fails while the previous instance is still quitting, sometimes even after its process is gone
+    while pgrep -xq Looper-Debug; do sleep 0.1; done
+    for i in 1 2 3 4 5; do open {{debug_app}} && exit 0; sleep 0.5; done; exit 1
 
 # Run the CLI from the debug build.
 cli *args:

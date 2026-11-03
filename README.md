@@ -29,6 +29,12 @@ Command reference lives in [docs/commands/](./docs/commands) as Asciidoc sources
 the CLI `--help` output. For now, the [AeroSpace guide](https://nikitabobko.github.io/AeroSpace/guide) describes
 the shared concepts.
 
+## Credits
+
+- [AeroSpace](https://github.com/nikitabobko/AeroSpace) by Nikita Bobko: Looper is a fork of it (MIT).
+- [Loop](https://github.com/MrKai77/Loop) by Kai Azim: the radial wheel's design and interaction are modeled
+  on Loop's radial menu. Looper's implementation is written from scratch and shares no code with Loop (GPL-3.0).
+
 ## Development
 
 Looper is a single SwiftPM package built with the Xcode toolchain; development tools come from

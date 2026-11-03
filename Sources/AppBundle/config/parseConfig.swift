@@ -154,6 +154,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
 
     "gaps": Parser(\.gaps, parseGaps),
     "focus-follows-mouse": Parser(\.focusFollowsMouse, parseFocusFollowsMouse),
+    "wheel": Parser(\.wheel, parseWheel),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
     // Deprecated

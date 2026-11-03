@@ -83,6 +83,17 @@ gaps.outer.bottom =     0
 gaps.outer.top =        0
 gaps.outer.right =      0
 
+# Radial wheel, shown while holding fn
+# Corner radius in percent: 0 is a square, 100 is a circle
+wheel.corner-radius = 100
+# Ring thickness in points, from 10 to 35
+wheel.thickness = 22
+# Selection color: 'system' (macOS accent color), 'wallpaper' (most vibrant color of the wallpaper),
+# a custom color like '#3478f6', or two custom colors for a gradient like ['#3478f6', '#a3c8ff']
+wheel.accent-color = 'system'
+# Trackpad haptic feedback when the selection changes
+wheel.haptics = true
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented
