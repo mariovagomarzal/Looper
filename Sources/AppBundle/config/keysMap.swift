@@ -1,6 +1,5 @@
 import AppKit
 import Common
-import HotKey
 
 private let minus = "minus"
 private let equal = "equal"
@@ -50,8 +49,6 @@ func getKeysPreset(_ layout: KeyMapping.Preset) -> [String: Key] {
         case .colemak: colemakMap
     }
 }
-
-extension Key: @unchecked @retroactive Sendable {}
 
 let keyNotationToKeyCode: [String: Key] = [
     sectionSign: .section,
@@ -245,24 +242,6 @@ private let colemakMap: [String: Key] = keyNotationToKeyCode + [
     slash: .slash,
 ]
 
-let modifiersMap: [String: NSEvent.ModifierFlags] = [
-    "shift": .shift,
-    "alt": .option,
-    "ctrl": .control,
-    "cmd": .command,
-]
-
-extension NSEvent.ModifierFlags {
-    func toString() -> String {
-        var result: [String] = []
-        if contains(.option) { result.append("alt") }
-        if contains(.control) { result.append("ctrl") }
-        if contains(.command) { result.append("cmd") }
-        if contains(.shift) { result.append("shift") }
-        return result.joined(separator: "-")
-    }
-}
-
 extension Key {
     func toString() -> String {
         switch self {
@@ -370,38 +349,7 @@ extension Key {
             case .keypadMultiply: "keypadMultiply"
             case .keypadPlus: "keypadPlus"
 
-            // wtf
-            case .command: "cmd"
-            case .rightCommand: "rCmd"
-            case .option: "alt"
-            case .rightOption: "rAlt"
-            case .control: "ctrl"
-            case .rightControl: "rCtrl"
-            case .shift: "shift"
-            case .rightShift: "rShift"
-            case .function: "function"
-            case .capsLock: "capsLock"
             case .forwardDelete: "forwardDelete"
-            case .help: "help"
-            case .volumeUp: "volumeUp"
-            case .volumeDown: "volumeDown"
-            case .mute: "mute"
         }
     }
 }
-
-// doesn't work :(
-//extension NSEvent.ModifierFlags {
-//    static let lOption = NSEvent.ModifierFlags(rawValue: 1 << 1)
-//    static let rOption = NSEvent.ModifierFlags(rawValue: 1 << 2)
-//    static let lShift = NSEvent.ModifierFlags(rawValue: 0x00000002)
-//    static let rShift = NSEvent.ModifierFlags(rawValue: 0x00000004)
-//    static let lCommand = NSEvent.ModifierFlags(rawValue: 1 << 7)
-//    static let rCommand = NSEvent.ModifierFlags(rawValue: 0x00000010)
-//}
-
-// NSEvent.ModifierFlags.command.rawValue // 1 << 20
-// NSEvent.ModifierFlags.option.rawValue // 1 << 19
-// NSEvent.ModifierFlags.control.rawValue // 1 << 18
-// NSEvent.ModifierFlags.shift.rawValue // 1 << 17
-// https://github.com/koekeishiya/skhd/blob/master/src/hotkey.h

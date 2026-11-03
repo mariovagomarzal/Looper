@@ -1,68 +1,13 @@
-import AppKit
 import Common
-import Foundation
-import HotKey
-
-@MainActor private var hotkeys: [String: HotKey] = [:]
-
-@MainActor func resetHotKeys() {
-    // Explicitly unregister all hotkeys. We cannot always rely on destruction of the HotKey object to trigger
-    // unregistration because we might be running inside a hotkey handler that is keeping its HotKey object alive.
-    for (_, key) in hotkeys {
-        key.isEnabled = false
-    }
-    hotkeys = [:]
-}
-
-extension HotKey {
-    var isEnabled: Bool {
-        get { !isPaused }
-        set {
-            if isEnabled != newValue {
-                isPaused = !newValue
-            }
-        }
-    }
-}
-
-@MainActor var activeMode: String? = mainModeId
-@MainActor func activateMode_nonCancellable(_ targetMode: String?) async {
-    let targetBindings = targetMode.flatMap { config.modes[$0] }?.bindings ?? [:]
-    for binding in targetBindings.values where !hotkeys.keys.contains(binding.descriptionWithKeyCode) {
-        hotkeys[binding.descriptionWithKeyCode] = HotKey(key: binding.keyCode, modifiers: binding.modifiers, keyDownHandler: {
-            Task.startUnstructured {
-                if let activeMode {
-                    broadcastEvent(.bindingTriggered(
-                        mode: activeMode,
-                        binding: binding.descriptionWithKeyNotation,
-                    ))
-                    try await runLightSession(.hotkeyBinding, .checkServerIsEnabledOrDie()) { () throws in
-                        _ = await config.modes[activeMode]?.bindings[binding.descriptionWithKeyCode]?.commands
-                            .run(.defaultEnv, .emptyStdin)
-                    }
-                }
-            }
-        })
-    }
-    for (binding, key) in hotkeys {
-        key.isEnabled = targetBindings.keys.contains(binding)
-    }
-    let oldMode = activeMode
-    activeMode = targetMode
-    if oldMode != targetMode {
-        broadcastEvent(.modeChanged(mode: targetMode))
-        _ = await config.onModeChanged.run(.defaultEnv, .emptyStdin)
-    }
-}
 
 struct HotkeyBinding: Equatable, Sendable {
-    let modifiers: NSEvent.ModifierFlags
+    let modifiers: HotkeyModifiers
     let keyCode: Key
     let commands: Shell<any Command>
     let descriptionWithKeyCode: String
     let descriptionWithKeyNotation: String
 
-    init(_ modifiers: NSEvent.ModifierFlags, _ keyCode: Key, _ commands: Shell<any Command>, descriptionWithKeyNotation: String) {
+    init(_ modifiers: HotkeyModifiers, _ keyCode: Key, _ commands: Shell<any Command>, descriptionWithKeyNotation: String) {
         self.modifiers = modifiers
         self.keyCode = keyCode
         self.commands = commands
@@ -104,18 +49,14 @@ func parseBindings(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout 
     return result
 }
 
-func parseBinding(_ raw: String, _ backtrace: ConfigBacktrace, _ mapping: [String: Key]) -> ResOrConfigParseDiagnostic<(NSEvent.ModifierFlags, Key)> {
+func parseBinding(_ raw: String, _ backtrace: ConfigBacktrace, _ mapping: [String: Key]) -> ResOrConfigParseDiagnostic<(HotkeyModifiers, Key)> {
     let rawKeys = raw.split(separator: "-")
-    let modifiers: ResOrConfigParseDiagnostic<NSEvent.ModifierFlags> = rawKeys.dropLast()
-        .mapAllOrFailure {
-            modifiersMap[String($0)].toResult(.init(backtrace, "Can't parse modifiers in '\(raw)' binding"))
-        }
-        .map { NSEvent.ModifierFlags($0) }
-    let key: ResOrConfigParseDiagnostic<Key> = rawKeys.last.flatMap { mapping[String($0)] }
-        .toResult(.init(backtrace, "Can't parse the key in '\(raw)' binding"))
-    return modifiers.flatMap { modifiers -> ResOrConfigParseDiagnostic<(NSEvent.ModifierFlags, Key)> in
-        key.flatMap { key -> ResOrConfigParseDiagnostic<(NSEvent.ModifierFlags, Key)> in
-            .success((modifiers, key))
-        }
+    var modifiers = HotkeyModifiers.none
+    for token in rawKeys.dropLast() where !modifiers.add(token: String(token)) {
+        return .failure(.init(backtrace, "Can't parse modifiers in '\(raw)' binding"))
     }
+    guard let key = rawKeys.last.flatMap({ mapping[String($0)] }) else {
+        return .failure(.init(backtrace, "Can't parse the key in '\(raw)' binding"))
+    }
+    return .success((modifiers, key))
 }

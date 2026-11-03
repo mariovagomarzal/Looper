@@ -99,6 +99,10 @@ gaps.outer.right =      0
     # - Arrows.         left, down, up, right
 
     # All possible modifiers: cmd, alt, ctrl, shift
+    # Prefix a modifier with 'l' or 'r' to require the left or the right key only:
+    # lcmd, rcmd, lalt, ralt, lctrl, rctrl, lshift, rshift (e.g. 'lalt-h').
+    # The plain modifier ('alt') matches either side. When both 'alt-h' and 'lalt-h' are bound,
+    # 'lalt-h' wins for the left key.
 
     # All possible commands: https://nikitabobko.github.io/AeroSpace/commands
 

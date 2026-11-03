@@ -50,6 +50,20 @@ todo
 
 Sources/AppBundle/config/
 
+### Hotkeys
+
+Bindings are captured with a `CGEventTap` (`HotkeyEventTap.swift`), not with Carbon's `RegisterEventHotKey`, because
+Carbon can't tell left and right modifiers apart. The tap reads the device dependent bits of the event flags
+(`PressedModifiers`) and matches them against the bindings of the active mode (`HotkeyModifiers.matches`). Sided
+bindings (`lalt-h`) win over generic ones (`alt-h`).
+
+- The tap runs on its own thread with a snapshot of the active bindings, so typing never waits for the main thread.
+  Matched bindings are run on the main actor.
+- A swallowed key down also swallows its key up. Autorepeat key downs are swallowed without running the binding again.
+- macOS disables slow taps; the callback re-enables it. Creating the tap requires the Accessibility permission, so the
+  thread retries until it's granted.
+- While Secure Input is on (password fields), macOS doesn't deliver key events to taps, so bindings don't work there.
+
 ## Tree Model subsystem
 
 Sources/AppBundle/tree/

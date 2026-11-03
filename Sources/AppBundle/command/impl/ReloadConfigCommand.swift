@@ -50,7 +50,6 @@ struct ReloadConfigResult {
     }
     if parseResult.allowReloadConfig && !args.dryRun {
         TrayMenuModel.shared.lastReloadConfigContainedWarnings = containsWarnings
-        resetHotKeys()
         config = parseResult.config
         configUrl = result.configUrl
         await activateMode_nonCancellable(activeMode)

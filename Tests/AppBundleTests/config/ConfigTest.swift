@@ -121,7 +121,7 @@ final class ConfigTest: XCTestCase {
             """,
         )
         assertEquals(result.errors, [])
-        let binding = HotkeyBinding(.option, .h, .cmd(FocusCommand.new(direction: .left)))
+        let binding = HotkeyBinding(.alt, .h, .cmd(FocusCommand.new(direction: .left)))
         assertEquals(
             result.config.modes[mainModeId],
             Mode(bindings: [binding.descriptionWithKeyCode: binding]),
@@ -158,7 +158,7 @@ final class ConfigTest: XCTestCase {
                 "[ERROR] mode.main.binding.alt-hh: Can\'t parse the key in \'alt-hh\' binding",
             ],
         )
-        let binding = HotkeyBinding(.option, .k, .cmd(FocusCommand.new(direction: .up)))
+        let binding = HotkeyBinding(.alt, .k, .cmd(FocusCommand.new(direction: .up)))
         assertEquals(
             result.config.modes[mainModeId],
             Mode(bindings: [binding.descriptionWithKeyCode: binding]),
@@ -659,7 +659,7 @@ final class ConfigTest: XCTestCase {
             "q": .q,
             "unicorn": .u,
         ]))
-        let binding = HotkeyBinding(.option, .u, .cmd(WorkspaceCommand(args: WorkspaceCmdArgs(target: .direct(.parse("unicorn").getOrDie())))))
+        let binding = HotkeyBinding(.alt, .u, .cmd(WorkspaceCommand(args: WorkspaceCmdArgs(target: .direct(.parse("unicorn").getOrDie())))))
         assertEquals(result.config.modes[mainModeId]?.bindings, [binding.descriptionWithKeyCode: binding])
 
         let errors1 = parseConfig(
