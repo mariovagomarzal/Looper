@@ -31,6 +31,7 @@ let subcommandDescriptions = [
     ["  move-node-to-monitor", "Move window to monitor targeted by relative direction, by order, or by pattern"],
     ["  move-node-to-workspace", "Move the focused window to the specified workspace"],
     ["  move", "Move the focused window in the given direction"],
+    ["  place", "Move and resize a floating window to a region of its monitor"],
     ["  reload-config", "Reload currently active config"],
     ["  resize", "Resize the focused window"],
     ["  run-callback", "Run Looper config callbacks on demand"],
