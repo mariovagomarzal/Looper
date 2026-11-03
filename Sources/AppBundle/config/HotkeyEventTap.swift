@@ -52,7 +52,7 @@ private func apply(_ effect: WheelTapEffect?) {
     guard let effect else { return }
     Task.startUnstructured { @MainActor in
         switch effect {
-            case .open(let profile): WheelController.shared.open(profile: profile)
+            case .open(let profile): WheelController.shared.request(profile: profile)
             case .switchLater(_, let id):
                 let delay = hotkeyTapState.withLock { $0.wheelReleaseDelay }
                 try? await Task.sleep(for: .milliseconds(delay))

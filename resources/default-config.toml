@@ -119,6 +119,17 @@ wheel.release-delay = 150
 # [wheel.profiles.workspaces.actions]
 # left = 'workspace prev'
 # right = 'workspace next'
+#
+# A profile with 'extends' and 'if' is a variant: when its base profile opens and the condition succeeds for the
+# focused window, the variant opens instead. Conditions use the 'test' and 'test-not' commands, joined with
+# '&&', '||' and parentheses (see 'looper test --help' for the variables). The first matching variant in the file
+# wins, and variants can have variants too.
+#
+# [wheel.profiles.floating]
+# extends = 'default'
+# if = 'test %{window-layout} = floating && test-not %{app-name} ~= safari'
+# [wheel.profiles.floating.actions]
+# center = 'layout tiling'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

@@ -263,6 +263,10 @@ struct ParseConfigResult {
 
     var config = rawTable.parseTable(Config(), configParser, .emptyRoot, &c, allowEmpty: true)
     config.configVersion = configVersion
+    // The generic TOML conversion sorts keys. Variants need the order of the file to decide which one wins
+    if let profileOrder = try? TOMLTable(source: rawToml).table(forKey: "wheel").table(forKey: "profiles").keys {
+        config.wheel.orderVariants(by: profileOrder)
+    }
 
     if let mapping = rawTable[keyMappingConfigRootKey].flatMap({ parseKeyMapping($0, .rootKey(keyMappingConfigRootKey), &c) }) {
         config.keyMapping = mapping

@@ -14,7 +14,7 @@ struct WheelCommand: Command {
                     return .fail(io.err("Unknown wheel profile '\(profile)'. Known profiles: \(known)"))
                 }
                 let wasOpen = WheelController.shared.isOpen
-                WheelController.shared.open(profile: profile)
+                WheelController.shared.request(profile: profile)
                 if !wasOpen { wheelDidOpenFromCommand() }
                 return .succ
             case .cancel:

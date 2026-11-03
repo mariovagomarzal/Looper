@@ -318,4 +318,88 @@ final class WheelTest: XCTestCase {
         assertEquals(parseConfig("wheel.release-delay = 0").config.wheel.releaseDelay, 0)
         assertEquals(parseConfig("wheel.release-delay = 5000").strErrors, ["[ERROR] wheel.release-delay: Must be in [0, 1000] range"])
     }
+
+    func testParseVariants() {
+        let result = parseConfig(
+            """
+            [wheel.profiles.floating]
+            extends = 'default'
+            if = 'test %{window-layout} = floating && test-not %{app-name} ~= safari'
+
+            [wheel.profiles.plain]
+            extends = 'default'
+
+            [wheel.profiles.safari]
+            extends = 'default'
+            if = 'test %{app-name} ~= safari'
+
+            [wheel.profiles.floating-firefox]
+            extends = 'floating'
+            if = 'test %{app-name} ~= firefox'
+            """,
+        )
+        assertEquals(result.errors, [])
+        assertEquals(result.config.wheel.variants, ["default": ["floating", "safari"], "floating": ["floating-firefox"]])
+        XCTAssertNotNil(result.config.wheel.profiles["floating"]?.condition)
+        XCTAssertNil(result.config.wheel.profiles["plain"]?.condition)
+        // The condition isn't inherited
+        XCTAssertNotNil(result.config.wheel.profiles["floating-firefox"]?.condition)
+    }
+
+    func testVariantErrors() {
+        let result = parseConfig(
+            """
+            [wheel.profiles.default]
+            if = 'true'
+
+            [wheel.profiles.orphan]
+            if = 'true'
+
+            [wheel.profiles.broken]
+            extends = 'default'
+            if = 'test %{window-layout} ='
+            """,
+        )
+        let errors = result.strErrors.sorted()
+        assertEquals(errors.count, 3, additionalMsg: errors.joined(separator: "\n"))
+        XCTAssertTrue(errors.contains("[ERROR] wheel.profiles.default.if: A profile with 'if' must extend the profile it replaces"))
+        XCTAssertTrue(errors.contains("[ERROR] wheel.profiles.orphan.if: A profile with 'if' must extend the profile it replaces"))
+        XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.broken.if:") })
+        XCTAssertTrue(result.config.wheel.variants.isEmpty)
+    }
+
+    func testResolveVariants() async {
+        setUpWorkspacesForTests()
+        defer { setUpWorkspacesForTests() }
+        config.wheel = parseConfig(
+            """
+            [wheel.profiles.other-workspace]
+            extends = 'default'
+            if = 'test %{workspace} = b'
+
+            [wheel.profiles.this-workspace]
+            extends = 'default'
+            if = 'test %{workspace} = a'
+
+            [wheel.profiles.also-this-workspace]
+            extends = 'default'
+            if = 'test %{workspace} = a'
+
+            [wheel.profiles.nested]
+            extends = 'this-workspace'
+            if = 'test %{workspace} = b || test-not %{workspace} = c'
+
+            [wheel.profiles.needs-window]
+            extends = 'nested'
+            if = 'test %{window-layout} = floating'
+            """,
+        ).config.wheel
+        assertTrue(Workspace.get(byName: "a").focusWorkspace())
+
+        // The first matching variant wins, recursively. Window conditions can't match on an empty workspace
+        let resolved = await resolveWheelVariant("default")
+        XCTAssertEqual(resolved, "nested")
+        // A variant requested by name skips its own condition
+        assertEquals(await resolveWheelVariant("other-workspace"), "other-workspace")
+    }
 }

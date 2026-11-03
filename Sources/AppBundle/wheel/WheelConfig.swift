@@ -7,11 +7,21 @@ struct WheelConfig: Sendable {
     /// There is always a 'default' profile
     var profiles: [String: WheelProfile] = [defaultWheelProfile: WheelProfile()]
     var triggers: [WheelTriggerBinding] = [WheelTriggerBinding(chord: WheelChord(fn: true), profile: defaultWheelProfile)]
+    /// Variants of every profile in config order: the profiles that extend it with an 'if' condition
+    var variants: [String: [String]] = [:]
     /// Milliseconds that a profile switch caused by releasing a modifier waits, in case the remaining modifiers are
     /// released too. Fingers never release several keys at once
     var releaseDelay: Int = 150
 
     static let releaseDelayRange = 0 ... 1000
+
+    /// `profileOrder` lists profiles in the order they appear in the config file
+    mutating func orderVariants(by profileOrder: [String]) {
+        let position = Dictionary(profileOrder.enumerated().map { ($1, $0) }) { first, _ in first }
+        variants = variants.mapValues { names in
+            names.sorted { (position[$0] ?? Int.max) < (position[$1] ?? Int.max) }
+        }
+    }
 }
 
 let defaultWheelProfile = "default"
@@ -20,6 +30,9 @@ struct WheelProfile: Sendable {
     var style = WheelStyleConfig()
     /// Unbound (slot, finish) pairs do nothing
     var actions: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
+    /// Makes the profile a variant of the profile it extends: it replaces that profile when the wheel opens and the
+    /// condition succeeds. Evaluated like 'test' commands, in the context of the focused window
+    var condition: Shell<any Command>? = nil
 
     func action(_ slot: WheelSlot, _ finish: WheelFinish) -> Shell<any Command>? {
         actions[slot]?[finish]
@@ -130,6 +143,7 @@ struct WheelStyleOverrides: Withable, Equatable, Sendable {
 
 private struct WheelProfileDraft: Withable, Sendable {
     var extends: String? = nil
+    var condition: Shell<any Command>? = nil
     var style = WheelStyleOverrides()
     var actions: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
 }
@@ -144,6 +158,7 @@ private struct WheelDraft: Withable, Sendable {
 private let profilesKey = "profiles"
 private let triggersKey = "triggers"
 private let extendsKey = "extends"
+private let conditionKey = "if"
 
 private let wheelParser: [String: any ParserProtocol<WheelDraft>] = [
     "corner-radius": Parser(\.style.cornerRadius, parseCornerRadius),
@@ -161,6 +176,7 @@ private let profileParser: [String: any ParserProtocol<WheelProfileDraft>] = [
     "accent-color": Parser(\.style.accentColor, parseOptionalAccentColor),
     "haptics": Parser(\.style.haptics, parseOptionalBool),
     extendsKey: Parser(\.extends) { parseString($0, $1).map(Optional.some) },
+    conditionKey: Parser(\.condition, parseCondition),
     "actions": Parser(\.actions, parseActions),
 ]
 
@@ -198,6 +214,13 @@ private func parseProfileDrafts(_ raw: OrderedJson, _ backtrace: ConfigBacktrace
         }
         return (name, profileTable.parseTable(WheelProfileDraft(), profileParser, backtrace, &c, allowEmpty: true))
     }
+}
+
+/// Same syntax as the string form of the 'if' of on-window-detected: 'test' and 'test-not' commands joined with '&&',
+/// '||' and parentheses
+private func parseCondition(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> Shell<any Command>? {
+    guard let rawString = parseString(raw, backtrace).getOrNil(appendErrorTo: &c.errors) else { return nil }
+    return parseCommand(rawString, allowExecAndForget: false, allowEval: false).toResult().toParsedConfig(backtrace).getOrNil(appendErrorTo: &c.errors)
 }
 
 private func parseActions(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> [WheelSlot: [WheelFinish: Shell<any Command>]] {
@@ -315,6 +338,10 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
             drafts[name]?.extends = nil
         }
     }
+    for (name, profile) in drafts where profile.condition != nil && profile.extends == nil {
+        c.errors.append(.init(profilesBacktrace + .key(name) + .key(conditionKey), "A profile with 'if' must extend the profile it replaces"))
+        drafts[name]?.condition = nil
+    }
 
     let baseStyle = WheelStyleConfig().applying(draft.style).applying(drafts[defaultWheelProfile]?.style ?? WheelStyleOverrides())
     var resolved: [String: WheelProfile] = [:]
@@ -330,6 +357,7 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
             }
         }
         var profile = WheelProfile()
+        profile.condition = profileDraft.condition
         profile.style = name == defaultWheelProfile ? baseStyle : (parent?.style ?? baseStyle).applying(profileDraft.style)
         profile.actions = parent?.actions ?? [:]
         for (slot, finishes) in profileDraft.actions {
@@ -346,6 +374,12 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
 
     var result = WheelConfig()
     result.profiles = resolved
+    // Sorted by name here, and by their order in the config file once the whole file is parsed (see parseConfig)
+    for (name, _) in draft.profiles.sorted(by: { $0.name < $1.name }) {
+        if let base = drafts[name]?.extends, drafts[name]?.condition != nil {
+            result.variants[base, default: []].append(name)
+        }
+    }
     result.releaseDelay = draft.releaseDelay ?? result.releaseDelay
     if let triggers = draft.triggers {
         for trigger in triggers where resolved[trigger.profile] == nil {

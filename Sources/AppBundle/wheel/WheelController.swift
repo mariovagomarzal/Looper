@@ -19,6 +19,9 @@ final class WheelController {
     private var lastOffset: CGVector = .zero
     private var mouseMonitor: Any? = nil
     private var orderOutTask: Task<(), Never>? = nil
+    /// Bumped by every open request and every finished gesture, so that a request whose variant resolved too late is
+    /// dropped
+    private var openRequest = 0
 
     private init() {}
 
@@ -33,8 +36,24 @@ final class WheelController {
         panel.contentView?.layoutSubtreeIfNeeded()
     }
 
-    /// Opens the wheel with the profile, or switches the open wheel to it
-    func open(profile name: String) {
+    /// Opens the wheel with the profile, or switches the open wheel to it. If the profile has variants, the one whose
+    /// condition matches the focused window is used instead
+    func request(profile base: String) {
+        openRequest += 1
+        let request = openRequest
+        guard config.wheel.variants[base]?.isEmpty == false else {
+            open(profile: base)
+            return
+        }
+        Task.startUnstructured { @MainActor in
+            let profile = await resolveWheelVariant(base)
+            // The gesture may have finished, or another profile may have been requested, while conditions ran
+            guard WheelController.shared.openRequest == request else { return }
+            WheelController.shared.open(profile: profile)
+        }
+    }
+
+    private func open(profile name: String) {
         if isOpen {
             switchProfile(to: name)
             return
@@ -91,6 +110,7 @@ final class WheelController {
 
     /// Finishes the gesture with the current selection
     func commit(_ finish: WheelFinish) {
+        openRequest += 1
         guard isOpen else { return }
         let selection = model.selection
         let profileName = profileName
@@ -114,6 +134,7 @@ final class WheelController {
 
     /// Closes the wheel without doing anything
     func cancel(_ reason: String) {
+        openRequest += 1
         guard isOpen else { return }
         close()
         wheelLog.notice("cancelled: \(reason, privacy: .public)")
@@ -143,6 +164,30 @@ final class WheelController {
         if model.select(selection), selection != .none, profile.style.haptics {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         }
+    }
+}
+
+/// The variant of the profile to open: the first variant (in config order) whose condition succeeds for the focused
+/// window, recursively. Conditions that fail to evaluate (e.g. window variables without a focused window) don't match
+@MainActor func resolveWheelVariant(_ base: String) async -> String {
+    var current = base
+    var visited: Set<String> = [base]
+    search: while true {
+        for variant in config.wheel.variants[current] ?? [] where !visited.contains(variant) {
+            guard let condition = config.wheel.profiles[variant]?.condition else { continue }
+            let result = await condition.run(CmdEnv.defaultEnv.withFocus(globalFocus), .emptyStdin)
+            switch result.exitCode.rawValue {
+                case 0:
+                    visited.insert(variant)
+                    current = variant
+                    continue search
+                case 1:
+                    continue
+                default:
+                    wheelLog.error("condition of \(variant, privacy: .public) failed: \(result.stderr.joined(separator: " "), privacy: .public)")
+            }
+        }
+        return current
     }
 }
 

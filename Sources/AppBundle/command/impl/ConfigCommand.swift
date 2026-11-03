@@ -141,7 +141,11 @@ extension Shell<any Command> {
                 (finish.rawValue, ConfigMapValue.scalar(.string(commands.shellOfCommandsDescription)))
             })))
         })
-        return .map(["actions": .map(actions)])
+        var result: [String: ConfigMapValue] = ["actions": .map(actions)]
+        if let condition = profile.condition {
+            result["if"] = .scalar(.string(condition.shellOfCommandsDescription))
+        }
+        return .map(result)
     }
     let triggers = Dictionary(config.wheel.triggers.map { ($0.chord.description, ConfigMapValue.scalar(.string($0.profile))) }) { $1 }
     return .map([
