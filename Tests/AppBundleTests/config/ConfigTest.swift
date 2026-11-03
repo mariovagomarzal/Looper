@@ -248,11 +248,6 @@ final class ConfigTest: XCTestCase {
         )
     }
 
-    func testMoveWorkspaceToMonitorCommandParsing() {
-        XCTAssertTrue(parseCommand("move-workspace-to-monitor --wrap-around next").cmdOrNil?.flatten().singleOrNil() is MoveWorkspaceToMonitorCommand)
-        XCTAssertTrue(parseCommand("move-workspace-to-display --wrap-around next").cmdOrNil?.flatten().singleOrNil() is MoveWorkspaceToMonitorCommand)
-    }
-
     func testParseTiles() {
         let command = parseCommand("layout tiles h_tiles v_tiles list h_list v_list").cmdOrNil?.flatten().singleOrNil()
         XCTAssertTrue(command is LayoutCommand)
@@ -282,44 +277,6 @@ final class ConfigTest: XCTestCase {
             My recommendation: keep the normalizations enabled, and prefer 'join-with' over 'split'.
             """
         assertEquals(errors, [expected])
-    }
-
-    func testParseWorkspaceToMonitorAssignment() {
-        let result = parseConfig(
-            """
-            [workspace-to-monitor-force-assignment]
-                workspace_name_1 = 1                            # Sequence number of the monitor (from left to right, 1-based indexing)
-                workspace_name_2 = 'main'                       # main monitor
-                workspace_name_3 = 'secondary'                  # non-main monitor (in case when there are only two monitors)
-                workspace_name_4 = 'built-in'                   # case insensitive regex substring
-                workspace_name_5 = '^built-in retina display$'  # case insensitive regex match
-                workspace_name_6 = ['secondary', 1]             # you can specify multiple patterns. The first matching pattern will be used
-                7 = "foo"
-                w7 = ['', 'main']
-                w8 = 0
-                workspace_name_x = '2'                          # Sequence number of the monitor (from left to right, 1-based indexing)
-            """,
-        )
-        assertEquals(
-            result.config.workspaceToMonitorForceAssignment,
-            [
-                "workspace_name_1": [.sequenceNumber(1)],
-                "workspace_name_2": [.main],
-                "workspace_name_3": [.secondary],
-                "workspace_name_4": [.pattern("built-in")!],
-                "workspace_name_5": [.pattern("^built-in retina display$")!],
-                "workspace_name_6": [.secondary, .sequenceNumber(1)],
-                "workspace_name_x": [.sequenceNumber(2)],
-                "7": [.pattern("foo")!],
-                "w7": [.main],
-                "w8": [],
-            ],
-        )
-        assertEquals([
-            "[ERROR] workspace-to-monitor-force-assignment.w7[0]: Empty string is an illegal monitor description",
-            "[ERROR] workspace-to-monitor-force-assignment.w8: Monitor sequence numbers uses 1-based indexing. Values less than 1 are illegal",
-        ], result.strErrors)
-        assertEquals([:], defaultConfig.workspaceToMonitorForceAssignment)
     }
 
     func testParseOnWindowDetected() {

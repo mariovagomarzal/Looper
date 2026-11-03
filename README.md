@@ -13,7 +13,8 @@ author's workflow.
 - Add a radial wheel, inspired by [Loop](https://github.com/MrKai77/Loop), that runs Looper commands,
   shell commands and other actions, with previews for window-management actions.
 - Wheel profiles activated by context or by an additional modifier key.
-- Per-monitor workspaces and awareness of native macOS Spaces.
+- Independent workspaces per monitor and per native macOS Space (desktop). Looper reads Spaces but never moves
+  windows between them.
 
 ## Identity
 

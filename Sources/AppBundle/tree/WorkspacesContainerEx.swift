@@ -2,57 +2,54 @@ import Common
 import Foundation
 
 extension WorkspacesContainer {
+    @MainActor var monitor: Monitor { (parent as? Monitor).orDie("WorkspacesContainer must be a child of Monitor") }
+
+    @MainActor var workspaces: [Workspace] { children.filterIsInstance(of: Workspace.self) }
+
+    @MainActor func workspace(named name: String) -> Workspace? {
+        workspaces.first { $0.name == name }
+    }
+
+    /// The container belongs to the native Space currently shown on its monitor
+    @MainActor var isActive: Bool {
+        spaceId == nativeSpaces?.currentSpace(of: monitor.info)
+    }
+
+    /// The native Space of the container no longer exists, or no longer belongs to the monitor
+    @MainActor var isStale: Bool {
+        guard let snapshot = nativeSpaces else { return spaceId != nil }
+        guard let spaceId, let display = snapshot.display(ofSpace: spaceId) else { return true }
+        return !snapshot.spacesSpanAllDisplays && snapshot.display(of: monitor.info)?.id != display.id
+    }
+
     @MainActor func setVisibleWorkspace(_ workspace: Workspace) -> Bool {
-        if !bindWorkspace(workspace) { return false }
+        if workspace.parent !== self { return false }
         if visibleWorkspaceNameOrStale == workspace.name { return true }
         prevVisibleWorkspaceName = visibleWorkspaceNameOrStale
         visibleWorkspaceNameOrStale = workspace.name
         return true
     }
 
-    @MainActor func getVisibleWorkspaceOrCreate(parent: Monitor) -> Workspace {
-        let workspace = children.filterIsInstance(of: Workspace.self).first { $0.name == visibleWorkspaceNameOrStale }?
-            .takeIf { $0.parent === self }
-        if let workspace { return workspace }
-
-        let stub = getStubWorkspace(forPoint: parent.info.rect.topLeftCorner)
+    /// The workspace that is shown when the native Space of the container is active
+    @MainActor var visibleWorkspace: Workspace {
+        if let workspace = visibleWorkspaceNameOrStale.flatMap(workspace(named:)) { return workspace }
+        let stub = stubWorkspace
         check(setVisibleWorkspace(stub))
         return stub
     }
 
-    @MainActor func bindWorkspace(_ workspace: Workspace) -> Bool {
-        guard let parent = parent as? Monitor else { return false }
-        if !isValidAssignment(workspace: workspace, point: parent.info.rect.topLeftCorner) { return false }
-        workspace.bind(to: self, adaptiveWeight: 1, index: INDEX_BIND_LAST)
-        return true
-    }
-}
-
-// The returned workspace must be invisible and it must belong to the requested monitor
-@MainActor func getStubWorkspace(for monitor: MonitorInfo) -> Workspace { // todo revisit this API
-    getStubWorkspace(forPoint: monitor.rect.topLeftCorner)
-}
-
-// todo accepting point parameter looks suboptimal
-@MainActor private func getStubWorkspace(forPoint point: CGPoint) -> Workspace {
-    let container = point.monitorApproximation.toMonitorOrRearrangeMonitors().getWorkspacesContainerOrCreate()
-    if let prev = container.prevVisibleWorkspaceName.map({ Workspace.get(byName: $0) }),
-       !prev.isVisible && prev.workspaceMonitorInfo.rect.topLeftCorner == point && prev.forceAssignedMonitorInfo == nil
-    {
-        return prev
-    }
-    if let candidate = container.mostRecentChild as? Workspace {
-        return candidate
-    }
-    return (1 ... Int.max).lazy
-        .map { Workspace.get(byName: String($0)) }
-        .first { $0.isEffectivelyEmpty && !$0.isVisible && !config.persistentWorkspaces.contains($0.name) && $0.forceAssignedMonitorInfo == nil }
-        .orDie("Can't create empty workspace")
-}
-
-@MainActor private func isValidAssignment(workspace: Workspace, point: CGPoint) -> Bool {
-    switch workspace.forceAssignedMonitorInfo {
-        case let forceAssigned? where forceAssigned.rect.topLeftCorner != point: false
-        default: true
+    /// A workspace to show when the visible one is gone
+    @MainActor private var stubWorkspace: Workspace {
+        if let prev = prevVisibleWorkspaceName.flatMap(workspace(named:)) {
+            return prev
+        }
+        // Not the most recent child: binding marks every newly created workspace (e.g. persistent ones) as most recent
+        if let persistent = config.persistentWorkspaces.map({ Workspace.get(byName: $0, in: self) }).min() {
+            return persistent
+        }
+        return (1 ... Int.max).lazy
+            .map { Workspace.get(byName: String($0), in: self) }
+            .first { $0.isEffectivelyEmpty }
+            .orDie("Can't create empty workspace")
     }
 }

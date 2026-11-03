@@ -124,11 +124,6 @@ let move_node_to_workspace_help_generated = """
        OR: move-node-to-workspace [-h|--help] [--focus-follows-window] [--fail-if-noop]
                                   [--window-id <window-id>] [--] <workspace-name>
     """
-let move_workspace_to_monitor_help_generated = """
-    USAGE: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around] (left|down|up|right)
-       OR: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around] (next|prev)
-       OR: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--] <monitor-pattern>...
-    """
 let move_help_generated = """
     USAGE: move [-h|--help] [--window-id <window-id>] [--boundaries <boundary>]
                 [--boundaries-action <boundary-action>] [--fail-if-fullscreen]
@@ -149,9 +144,6 @@ let split_help_generated = """
     """
 let subscribe_help_generated = """
     USAGE: subscribe [-h|--help] [--all] [--no-send-initial] [<event>...]
-    """
-let summon_workspace_help_generated = """
-    USAGE: summon-workspace [-h|--help] [--fail-if-noop] [--] <workspace>
     """
 let swap_help_generated = """
     USAGE: swap [-h|--help] [--window-id <window-id>] [--swap-focus]

@@ -6,7 +6,8 @@ struct ListWorkspacesCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = false
 
     func run(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
-        var result: [Workspace] = Workspace.all
+        // Workspaces of hidden native Spaces can't be addressed by name, so they are never listed
+        var result: [Workspace] = Workspace.all.filter(\.isInActiveSpace)
         if let visible = args.filteringFlags.visible {
             result = result.filter { $0.isVisible == visible }
         }

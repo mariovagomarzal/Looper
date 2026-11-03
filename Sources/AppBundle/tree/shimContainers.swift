@@ -4,10 +4,17 @@ final class FloatingWindowsContainer: TreeNode, NonLeafTreeNodeObject {
     @MainActor init(parent: Workspace) { super.init(parent: parent, adaptiveWeight: 1, index: INDEX_BIND_LAST) }
 }
 
+/// The independent set of workspaces of one (monitor, native macOS Space) pair.
+/// A monitor has one container per native Space that Looper has seen on it.
 final class WorkspacesContainer: TreeNode, NonLeafTreeNodeObject {
+    /// nil when native Spaces are unavailable. Then every monitor has a single container
+    let spaceId: NativeSpaceId?
     var visibleWorkspaceNameOrStale: String? = nil
     var prevVisibleWorkspaceName: String? = nil
-    @MainActor init(parent: Monitor) { super.init(parent: parent, adaptiveWeight: 1, index: INDEX_BIND_LAST) }
+    @MainActor init(parent: Monitor, spaceId: NativeSpaceId?) {
+        self.spaceId = spaceId
+        super.init(parent: parent, adaptiveWeight: 1, index: INDEX_BIND_LAST)
+    }
 }
 
 final class MacosFullscreenWindowsContainer: TreeNode, NonLeafTreeNodeObject {

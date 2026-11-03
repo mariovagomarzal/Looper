@@ -69,9 +69,6 @@ looper -h;
     | move-node-to-workspace [--wrap-around|--focus-follows-window|--stdin|--no-stdin]... (next|prev) [--wrap-around|--focus-follows-window|--stdin|--no-stdin]...
     | move-node-to-workspace [--fail-if-noop|--window-id <window_id>|--focus-follows-window]... <workspace> [--fail-if-noop|--window-id <window_id>|--focus-follows-window]...
 
-    | move-workspace-to-monitor [--wrap-around] (left|down|up|right|next|prev) [--wrap-around]
-    | move-workspace-to-monitor [--wrap-around] <monitor_pattern>... [--wrap-around]
-
     | reload-config [--no-gui | --dry-run]...
 
     | resize [--window-id <window_id>] (smart|smart-opposite|width|height) [+|-]<number> [--window-id <window_id>]
@@ -87,8 +84,6 @@ looper -h;
     | test-not <output_format> (=|~=) <output_format>
 
     | true
-
-    | summon-workspace [--fail-if-noop] <workspace> [--fail-if-noop]
 
     | trigger-binding <binding> --mode <mode_id>
     | trigger-binding --mode <mode_id> <binding>

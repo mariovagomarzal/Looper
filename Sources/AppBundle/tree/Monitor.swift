@@ -65,8 +65,9 @@ final class Monitor: TreeNode, NonLeafTreeNodeObject {
                      .window,
                      .workspace: illegalChildParentRelation(child: child, parent: monitor)
                 case .workspacesContainer(let it):
-                    for workspace in it.children {
-                        workspace.bind(to: mainMonitor.getWorkspacesContainerOrCreate(), adaptiveWeight: 1, index: INDEX_BIND_LAST)
+                    let target = mainMonitor.workspacesContainer(forSpace: it.spaceId)
+                    for workspace in it.workspaces {
+                        moveWorkspace(workspace, into: target)
                     }
             }
         }
@@ -86,10 +87,34 @@ final class Monitor: TreeNode, NonLeafTreeNodeObject {
     }
 }
 
+/// Moves the workspace to another container. If the container already has a workspace with the same name, the
+/// windows are merged into it
+@MainActor private func moveWorkspace(_ workspace: Workspace, into target: WorkspacesContainer) {
+    guard let existing = target.workspace(named: workspace.name) else {
+        workspace.bind(to: target, adaptiveWeight: 1, index: INDEX_BIND_LAST)
+        return
+    }
+    for child in workspace.children {
+        switch child.nodeCases {
+            case .tilingContainer(let root):
+                root.bind(to: existing.rootTilingContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
+            case .floatingWindowsContainer(let it):
+                for window in it.children { window.bind(to: existing.floatingWindowsContainer, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST) }
+            case .macosFullscreenWindowsContainer(let it):
+                for window in it.children { window.bind(to: existing.macOsNativeFullscreenWindowsContainer, adaptiveWeight: WEIGHT_DOESNT_MATTER, index: INDEX_BIND_LAST) }
+            case .macosHiddenAppsWindowsContainer(let it):
+                for window in it.children { window.bind(to: existing.macOsNativeHiddenAppsWindowsContainer, adaptiveWeight: WEIGHT_DOESNT_MATTER, index: INDEX_BIND_LAST) }
+            case .macosMinimizedWindowsContainer, .macosPopupWindowsContainer, .monitor, .window, .workspace, .workspacesContainer:
+                illegalChildParentRelation(child: child, parent: workspace)
+        }
+    }
+    workspace.unbindFromParent()
+}
+
 extension MonitorInfo {
+    /// The visible workspace of the native Space currently shown on the monitor
     @MainActor var visibleWorkspace: Workspace { // todo revisit this API
-        let monitor = toMonitorOrRearrangeMonitors()
-        return monitor.getWorkspacesContainerOrCreate().getVisibleWorkspaceOrCreate(parent: monitor)
+        toMonitorOrRearrangeMonitors().activeWorkspacesContainer.visibleWorkspace
     }
 
     @MainActor func toMonitorOrRearrangeMonitors() -> Monitor {
@@ -100,15 +125,6 @@ extension MonitorInfo {
         // Normally, recursion should happen only once more because we must take the value from the cache
         // (Unless, monitor configuration data race happens)
         return self.toMonitorOrRearrangeMonitors()
-    }
-
-    @MainActor func setVisibleWorkspace(_ workspace: Workspace) -> Bool { // todo revisit this API (new name: setVisibleWorkspace)
-        let container = toMonitorOrRearrangeMonitors().getWorkspacesContainerOrCreate()
-        return container.setVisibleWorkspace(workspace)
-    }
-
-    @MainActor func bindWorkspace(_ workspace: Workspace) -> Bool {
-        return toMonitorOrRearrangeMonitors().getWorkspacesContainerOrCreate().bindWorkspace(workspace)
     }
 }
 

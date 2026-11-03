@@ -21,6 +21,9 @@ looper list-workspaces [-h|--help] --focused [--format <output-format>] [--count
 // tag::body[]
 {manpurpose}
 
+Only workspaces of the active native macOS Space of every monitor are listed.
+Workspaces of other Spaces can't be addressed until their Space is shown.
+
 // =========================================================== Options
 include::util/conditional-options-header.adoc[]
 

@@ -53,6 +53,8 @@ private func moveFloatingWindow(_ window: Window) async throws {
 
 @MainActor
 private func moveTilingWindow(_ window: Window) {
+    // Don't mark the window if the mouse was already released. See releaseOrphanMouseManipulation
+    if !isLeftMouseButtonDown { return }
     currentlyManipulatedWithMouseWindowId = window.windowId
     window.lastAppliedLayoutPhysicalRect = nil
     let mouseLocation = mouseLocation

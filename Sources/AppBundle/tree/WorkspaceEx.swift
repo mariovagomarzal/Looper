@@ -51,17 +51,18 @@ extension Workspace {
         }
     }
 
-    @MainActor var isVisible: Bool { (parent as? WorkspacesContainer)?.visibleWorkspaceNameOrStale == self.name }
+    @MainActor var workspacesContainer: WorkspacesContainer? { parent as? WorkspacesContainer }
+
+    /// The workspace is shown on its monitor: it's the visible workspace of the active native Space
+    @MainActor var isVisible: Bool { isVisibleInItsSpace && workspacesContainer?.isActive == true }
+
+    /// The workspace is shown on its monitor when its native Space is active
+    @MainActor var isVisibleInItsSpace: Bool { workspacesContainer?.visibleWorkspaceNameOrStale == name }
+
+    /// The workspace belongs to the native Space currently shown on its monitor
+    @MainActor var isInActiveSpace: Bool { workspacesContainer?.isActive == true }
 
     @MainActor var workspaceMonitorInfo: MonitorInfo { // todo revisit this API (rename)
         return nodeMonitorInfo.orDie() // todo
-    }
-
-    @MainActor var forceAssignedMonitorInfo: MonitorInfo? {
-        guard let monitorDescriptions = config.workspaceToMonitorForceAssignment[name] else { return nil }
-        let sortedMonitors = globalSortedMonitorInfos
-        return monitorDescriptions.lazy
-            .compactMap { $0.resolveMonitorInfo(sortedMonitors: sortedMonitors) }
-            .first
     }
 }

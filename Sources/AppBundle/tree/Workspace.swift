@@ -1,32 +1,30 @@
 import AppKit
 import Common
 
-@MainActor private var workspaceNameToWorkspace: [String: Workspace] = [:]
-
+/// Workspace names are unique only inside their ``WorkspacesContainer``. Every (monitor, native Space) pair has its
+/// own independent set of workspaces. Commands resolve workspace names in the container of the focused workspace.
 final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
     let name: String
     nonisolated private let nameLogicalSegments: StringLogicalSegments
 
-    @MainActor private init(_ name: String) {
+    @MainActor private init(_ name: String, _ container: WorkspacesContainer) {
         self.name = name
         self.nameLogicalSegments = name.toLogicalSegments()
-        let container = mainMonitorInfo.toMonitorOrRearrangeMonitors().getWorkspacesContainerOrCreate()
-        super.init(parent: container, adaptiveWeight: 0, index: 0)
-        check(forceAssignedMonitorInfo?.toMonitorOrRearrangeMonitors().getWorkspacesContainerOrCreate().bindWorkspace(self) != false)
+        super.init(parent: container, adaptiveWeight: 1, index: INDEX_BIND_LAST)
     }
 
+    /// Workspaces of all monitors and native Spaces
     @MainActor static var all: [Workspace] {
-        workspaceNameToWorkspace.values.sorted()
+        Monitor.all.flatMap { $0.workspacesContainers.flatMap(\.workspaces) }.sorted()
     }
 
+    /// Resolves the name in the context of the focused workspace (focused monitor and its active native Space)
     @MainActor static func get(byName name: String) -> Workspace {
-        if let existing = workspaceNameToWorkspace[name] {
-            return existing
-        } else {
-            let workspace = Workspace(name)
-            workspaceNameToWorkspace[name] = workspace
-            return workspace
-        }
+        get(byName: name, in: focusedWorkspacesContainer)
+    }
+
+    @MainActor static func get(byName name: String, in container: WorkspacesContainer) -> Workspace {
+        container.workspace(named: name) ?? Workspace(name, container)
     }
 
     nonisolated static func < (lhs: Workspace, rhs: Workspace) -> Bool {
@@ -52,30 +50,31 @@ final class Workspace: TreeNode, NonLeafTreeNodeObject, Hashable, Comparable {
         return "Workspace(\(description))"
     }
 
-    @MainActor static func forceAssignWorkspaces() {
-        for wsName in config.workspaceToMonitorForceAssignment.keys {
-            let ws = Workspace.get(byName: wsName)
-            check(ws.forceAssignedMonitorInfo?.bindWorkspace(ws) != false)
-        }
-    }
-
     @MainActor static func garbageCollectUnusedWorkspaces() {
-        for name in config.persistentWorkspaces {
-            _ = get(byName: name) // Make sure that all persistent workspaces are "cached"
-        }
         let focus = globalFocus
-        workspaceNameToWorkspace = workspaceNameToWorkspace.filter { (_, workspace: Workspace) in
-            config.persistentWorkspaces.contains(workspace.name) ||
-                !workspace.isEffectivelyEmpty ||
-                workspace.isVisible ||
-                workspace.name == focus.workspace.name
+        for monitor in Monitor.all {
+            for container in monitor.workspacesContainers {
+                for name in config.persistentWorkspaces {
+                    _ = get(byName: name, in: container) // Make sure that all persistent workspaces exist
+                }
+                for workspace in container.workspaces {
+                    let keep = config.persistentWorkspaces.contains(workspace.name) ||
+                        !workspace.isEffectivelyEmpty ||
+                        workspace.isVisibleInItsSpace ||
+                        workspace == focus.workspace
+                    if !keep { workspace.unbindFromParent() }
+                }
+            }
+            monitor.garbageCollectStaleWorkspacesContainers(focus: focus)
         }
     }
 
-    nonisolated static func == (lhs: Workspace, rhs: Workspace) -> Bool {
-        check((lhs === rhs) == (lhs.name == rhs.name), "lhs: \(lhs) rhs: \(rhs)")
-        return lhs === rhs
-    }
+    nonisolated static func == (lhs: Workspace, rhs: Workspace) -> Bool { lhs === rhs }
 
-    nonisolated func hash(into hasher: inout Hasher) { hasher.combine(name) }
+    nonisolated func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
+}
+
+/// The container of the focused workspace
+@MainActor var focusedWorkspacesContainer: WorkspacesContainer {
+    globalFocus.workspace.workspacesContainer ?? mainMonitorInfo.toMonitorOrRearrangeMonitors().activeWorkspacesContainer
 }

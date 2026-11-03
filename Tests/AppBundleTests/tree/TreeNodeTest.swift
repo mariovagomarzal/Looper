@@ -45,7 +45,8 @@ final class TreeNodeTest: XCTestCase {
         TestWindow.new(id: 1, parent: root, adaptiveWeight: 10).lifeStatus = .dead
 
         let window = TestWindow.new(id: 2, parent: root, adaptiveWeight: WEIGHT_AUTO)
-        assertEquals(window.getWeight(root.orientation), 1)
+        // Tombstones keep meaningful weights (sizes in points). They are used when there is no inhabited sibling
+        assertEquals(window.getWeight(root.orientation), 10)
     }
 
     func testNormalizeContainers_dontRemoveRoot() {

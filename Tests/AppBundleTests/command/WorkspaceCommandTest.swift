@@ -6,7 +6,7 @@ import XCTest
 final class WorkspaceCommandTest: XCTestCase {
     override func setUp() async throws {
         setUpWorkspacesForTests()
-        _prevFocusedWorkspaceName = nil
+        _prevFocusedWorkspace = nil
     }
 
     func testParseWorkspaceCommand() {
@@ -69,7 +69,7 @@ final class WorkspaceCommandTest: XCTestCase {
         // Make "b" alive so it can be focused as the back-and-forth target.
         _ = Workspace.get(byName: "b")
         assertTrue(Workspace.get(byName: "a").focusWorkspace())
-        _prevFocusedWorkspaceName = "b"
+        _prevFocusedWorkspace = WorkspaceRef(Workspace.get(byName: "b"))
 
         let result = await parseCommand("workspace --auto-back-and-forth a").cmdOrDie.run(.defaultEnv, .emptyStdin)
         assertEquals(result.exitCode.rawValue, 0)
@@ -78,7 +78,7 @@ final class WorkspaceCommandTest: XCTestCase {
 
     func testAutoBackAndForth_alreadyFocused_noPrev_fails() async {
         assertTrue(Workspace.get(byName: "a").focusWorkspace())
-        // _prevFocusedWorkspaceName is nil from setUp — WorkspaceBackAndForthCommand has nothing to focus.
+        // _prevFocusedWorkspace is nil from setUp — WorkspaceBackAndForthCommand has nothing to focus.
 
         let result = await parseCommand("workspace --auto-back-and-forth a").cmdOrDie.run(.defaultEnv, .emptyStdin)
         assertEquals(result.exitCode.rawValue, 2)
@@ -89,7 +89,7 @@ final class WorkspaceCommandTest: XCTestCase {
         assertTrue(Workspace.get(byName: "a").focusWorkspace())
         // --auto-back-and-forth only kicks in when the target equals the focused workspace.
         // Otherwise it's a regular direct focus.
-        _prevFocusedWorkspaceName = "c" // should be ignored
+        _prevFocusedWorkspace = WorkspaceRef(Workspace.get(byName: "c")) // should be ignored
 
         let result = await parseCommand("workspace --auto-back-and-forth b").cmdOrDie.run(.defaultEnv, .emptyStdin)
         assertEquals(result.exitCode.rawValue, 0)

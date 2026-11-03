@@ -20,7 +20,7 @@ struct LiveFocus: AeroAny, Equatable {
     @MainActor fileprivate var frozen: FrozenFocus {
         return FrozenFocus(
             windowId: windowOrNil?.windowId,
-            workspaceName: workspace.name,
+            workspace: WorkspaceRef(workspace),
             monitorId_oneBased: workspace.workspaceMonitorInfo.monitorId_oneBased ?? 0,
         )
     }
@@ -30,15 +30,16 @@ struct LiveFocus: AeroAny, Equatable {
 /// It's safe to keep a hard reference to this object.
 /// Unlike in LiveFocus, information inside FrozenFocus isn't guaranteed to be self-consistent.
 /// window - workspace - monitor relation could change since the moment object was created
-private struct FrozenFocus: AeroAny, Equatable, Sendable {
+private struct FrozenFocus: AeroAny, Equatable {
     let windowId: OpaqueWindowId?
-    let workspaceName: String
+    let workspace: WorkspaceRef
+    var workspaceName: String { workspace.name }
     // monitorId is not part of the focus. We keep it here only for 'on-focused-monitor-changed' to work
     let monitorId_oneBased: Int
 
     @MainActor var live: LiveFocus { // Important: don't access focus.monitorId here. monitorId is not part of the focus. Always prefer workspace
         let window: Window? = windowId.flatMap { Window.get(byId: $0) }
-        let workspace = Workspace.get(byName: workspaceName)
+        let workspace = self.workspace.resolveOrFallback()
 
         let workspaceFocus = workspace.toLiveFocus()
         let windowFocus = window?.toLiveFocusOrNil() ?? workspaceFocus
@@ -51,8 +52,35 @@ private struct FrozenFocus: AeroAny, Equatable, Sendable {
 
 @MainActor private var _focus: FrozenFocus = {
     let monitor = mainMonitorInfo
-    return FrozenFocus(windowId: nil, workspaceName: monitor.visibleWorkspace.name, monitorId_oneBased: monitor.monitorId_oneBased ?? 0)
+    return FrozenFocus(windowId: nil, workspace: WorkspaceRef(monitor.visibleWorkspace), monitorId_oneBased: monitor.monitorId_oneBased ?? 0)
 }()
+
+/// A reference to a workspace that survives workspace garbage collection: a (container, name) pair.
+/// Workspace names are unique only inside their container
+struct WorkspaceRef: Equatable {
+    private weak var container: WorkspacesContainer?
+    let name: String
+
+    @MainActor init(_ workspace: Workspace) {
+        self.container = workspace.workspacesContainer
+        self.name = workspace.name
+    }
+
+    /// nil if the container (its monitor or native Space) is gone
+    @MainActor func resolve() -> Workspace? {
+        guard let container, container.parent != nil else { return nil }
+        return Workspace.get(byName: name, in: container)
+    }
+
+    /// If the container is gone, falls back to the visible workspace of the main monitor
+    @MainActor func resolveOrFallback() -> Workspace {
+        resolve() ?? mainMonitorInfo.visibleWorkspace
+    }
+
+    static func == (lhs: WorkspaceRef, rhs: WorkspaceRef) -> Bool {
+        lhs.container === rhs.container && lhs.name == rhs.name
+    }
+}
 
 /// Global focus.
 /// Commands must be cautious about accessing this property directly. There are legitimate cases.
@@ -69,7 +97,7 @@ private struct FrozenFocus: AeroAny, Equatable, Sendable {
     }
 
     _focus = newFocus.frozen
-    let status = newFocus.workspace.workspaceMonitorInfo.setVisibleWorkspace(newFocus.workspace)
+    let status = newFocus.workspace.workspacesContainer?.setVisibleWorkspace(newFocus.workspace) ?? false
 
     newFocus.windowOrNil?.markAsMostRecentChild()
     return status
@@ -104,13 +132,13 @@ extension Workspace {
 @MainActor private var _lastKnownFocus: FrozenFocus = _focus
 
 // Used by workspace-back-and-forth
-@MainActor var _prevFocusedWorkspaceName: String? = nil {
+@MainActor var _prevFocusedWorkspace: WorkspaceRef? = nil {
     didSet {
         prevFocusedWorkspaceDate = .now
     }
 }
 @MainActor var prevFocusedWorkspaceDate: Date = .distantPast
-@MainActor var prevFocusedWorkspace: Workspace? { _prevFocusedWorkspaceName.map { Workspace.get(byName: $0) } }
+@MainActor var prevFocusedWorkspace: Workspace? { _prevFocusedWorkspace?.resolve() }
 
 // Used by focus-back-and-forth
 @MainActor private var _prevFocus: FrozenFocus? = nil
@@ -131,8 +159,8 @@ extension Workspace {
         _prevFocus = _lastKnownFocus
         hasFocusChanged = true
     }
-    if frozenFocus.workspaceName != _lastKnownFocus.workspaceName {
-        _prevFocusedWorkspaceName = _lastKnownFocus.workspaceName
+    if frozenFocus.workspace != _lastKnownFocus.workspace {
+        _prevFocusedWorkspace = _lastKnownFocus.workspace
         hasFocusedWorkspaceChanged = true
     }
     if frozenFocus.monitorId_oneBased != _lastKnownFocus.monitorId_oneBased {
@@ -146,8 +174,8 @@ extension Workspace {
     if hasFocusChanged {
         _ = await onFocusChanged(.defaultEnv, CmdIoImpl.emptyStdinIgnoringOut, focus)
     }
-    if let _prevFocusedWorkspaceName, hasFocusedWorkspaceChanged {
-        onWorkspaceChanged(_prevFocusedWorkspaceName, frozenFocus.workspaceName, focus)
+    if let _prevFocusedWorkspace, hasFocusedWorkspaceChanged {
+        onWorkspaceChanged(_prevFocusedWorkspace.name, frozenFocus.workspaceName, focus)
     }
     if hasFocusedMonitorChanged {
         _ = await onFocusedMonitorChanged(.defaultEnv, CmdIoImpl.emptyStdinIgnoringOut, focus)

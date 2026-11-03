@@ -32,9 +32,12 @@ func runHeavyCompleteRefreshSession(
     if !TrayMenuModel.shared.isEnabled { return }
     let res = await Result {
         try await $refreshSessionEvent.withValue(event) {
+            refreshNativeSpaces()
+            releaseOrphanMouseManipulation()
             let nativeFocused = try await getNativeFocusedWindow(.cancellable)
             if let nativeFocused { try await debugWindowsIfRecording(nativeFocused, .cancellable) }
             updateFocusCache(nativeFocused)
+            moveFocusToActiveSpaceIfNeeded()
 
             if shouldLayoutWorkspaces && optimisticallyPreLayoutWorkspaces { try await layoutWorkspaces() }
 
@@ -66,9 +69,13 @@ func runLightSession<T>(
     activeRefreshTask?.cancel() // Give priority to runSession
     activeRefreshTask = nil
     return try await $refreshSessionEvent.withValue(event) {
+        refreshNativeSpaces()
+        releaseOrphanMouseManipulation()
         let nativeFocused = try await getNativeFocusedWindow(.cancellable)
         if let nativeFocused { try await debugWindowsIfRecording(nativeFocused, .cancellable) }
         updateFocusCache(nativeFocused)
+        moveFocusToActiveSpaceIfNeeded()
+        try await reconcileWindowsWithNativeSpaces()
         let focusBefore = globalFocus.windowOrNil
 
         await refreshModel_nonCancellable()
@@ -109,7 +116,6 @@ func refreshModel_nonCancellable() async {
         await checkOnFocusChangedCallbacks_nonCancellable()
     } else {
         Workspace.garbageCollectUnusedWorkspaces()
-        Workspace.forceAssignWorkspaces()
         await checkOnFocusChangedCallbacks_nonCancellable()
         normalizeContainers()
     }
@@ -133,6 +139,8 @@ private func refresh() async throws {
             try await MacWindow.getOrRegister(windowId: windowId, macApp: app).lifeStatus = lifeStatus
         }
     }
+
+    try await reconcileWindowsWithNativeSpaces()
 
     // Garbage collect workspaces after apps, because workspaces contain apps.
     Workspace.garbageCollectUnusedWorkspaces()
@@ -191,7 +199,8 @@ private func layoutWorkspaces() async throws {
         workspace.allLeafWindowsRecursive.forEach { ($0 as! MacWindow).unhideFromCorner() } // todo as!
         try await workspace.layoutWorkspace()
     }
-    for workspace in Workspace.all where !workspace.isVisible {
+    // Windows of other native Spaces are never touched
+    for workspace in Workspace.all where !workspace.isVisible && workspace.isInActiveSpace {
         let corner = monitorToOptimalHideCorner[workspace.workspaceMonitorInfo.rect.topLeftCorner] ?? .bottomRightCorner
         for window in workspace.allLeafWindowsRecursive {
             try await (window as! MacWindow).hideInCorner(corner) // todo as!

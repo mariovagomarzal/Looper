@@ -31,11 +31,26 @@ func resizedObs(_: AXObserver, ax: AXUIElement, notif: CFString, _: UnsafeMutabl
 @MainActor
 func resetManipulatedWithMouseIfPossible() async throws {
     if currentlyManipulatedWithMouseWindowId != nil {
-        currentlyManipulatedWithMouseWindowId = nil
-        for workspace in Workspace.all {
-            workspace.resetResizeWeightBeforeResizeRecursive()
-        }
+        resetManipulatedWithMouse()
         scheduleCancellableCompleteRefreshSession(.resetManipulatedWithMouse, optimisticallyPreLayoutWorkspaces: true)
+    }
+}
+
+@MainActor
+private func resetManipulatedWithMouse() {
+    currentlyManipulatedWithMouseWindowId = nil
+    for workspace in Workspace.all {
+        workspace.resetResizeWeightBeforeResizeRecursive()
+    }
+}
+
+/// The window manipulated with the mouse is excluded from the layout. The mark is set asynchronously, after the AX
+/// notification, so it can be set after the mouse-up handler already ran. Such an orphan mark would exclude the window
+/// from the layout until the next click. Should be called at the beginning of every refresh session
+@MainActor
+func releaseOrphanMouseManipulation() {
+    if currentlyManipulatedWithMouseWindowId != nil && !isLeftMouseButtonDown {
+        resetManipulatedWithMouse()
     }
 }
 
@@ -81,7 +96,8 @@ private func resizeWithMouse(_ window: Window) async throws { // todo cover with
                     }
                 }
             }
-            currentlyManipulatedWithMouseWindowId = window.windowId
+            // Don't mark the window if the mouse was already released. See releaseOrphanMouseManipulation
+            if isLeftMouseButtonDown { currentlyManipulatedWithMouseWindowId = window.windowId }
     }
 }
 

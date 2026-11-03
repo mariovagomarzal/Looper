@@ -19,7 +19,7 @@ extension TreeNode {
         let physicalRect = Rect(topLeftX: point.x, topLeftY: point.y, width: width, height: height)
         switch nodeCases {
             case .monitor(let it):
-                try await it.getWorkspacesContainerOrCreate().getVisibleWorkspaceOrCreate(parent: it)
+                try await it.activeWorkspacesContainer.visibleWorkspace
                     .layoutRecursive(point, width: width, height: height, virtual: virtual, context)
             case .workspacesContainer: die()
             case .workspace(let workspace):

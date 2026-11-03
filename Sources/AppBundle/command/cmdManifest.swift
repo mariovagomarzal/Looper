@@ -66,8 +66,6 @@ extension CmdArgs {
                 command = MoveNodeToMonitorCommand(args: self as! MoveNodeToMonitorCmdArgs)
             case .moveNodeToWorkspace:
                 command = MoveNodeToWorkspaceCommand(args: self as! MoveNodeToWorkspaceCmdArgs)
-            case .moveWorkspaceToMonitor:
-                command = MoveWorkspaceToMonitorCommand(args: self as! MoveWorkspaceToMonitorCmdArgs)
             case .reloadConfig:
                 command = ReloadConfigCommand(args: self as! ReloadConfigCmdArgs)
             case .resize:
@@ -78,8 +76,6 @@ extension CmdArgs {
                 command = SplitCommand(args: self as! SplitCmdArgs)
             case .subscribe:
                 return .failure("subscribe is not supported in the eval", EXIT_CODE_TWO)
-            case .summonWorkspace:
-                command = SummonWorkspaceCommand(args: self as! SummonWorkspaceCmdArgs)
             case .swap:
                 command = SwapCommand(args: self as! SwapCmdArgs)
             case .test:

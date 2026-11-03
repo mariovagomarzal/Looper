@@ -52,9 +52,35 @@ Sources/AppBundle/config/
 
 ## Tree Model subsystem
 
-todo
-
 Sources/AppBundle/tree/
+
+```
+Monitor
+└── WorkspacesContainer (one per native macOS Space seen on the monitor)
+    └── Workspace (names are unique only inside their container)
+        ├── TilingContainer (root) → TilingContainer… → Window
+        ├── FloatingWindowsContainer → Window
+        └── macOS fullscreen / hidden app windows containers → Window
+```
+
+### Workspaces per monitor and per native Space
+
+Every (monitor, native Space) pair owns an independent set of workspaces. Workspace names are resolved in the
+container of the focused workspace, so `workspace 2` means "workspace 2 of the focused monitor and its active Space".
+
+Native Spaces are read, never driven (`Sources/AppBundle/model/NativeSpaces.swift`):
+- Private SkyLight functions, resolved at runtime with `dlsym`, report the active Space of every display and the
+  Space of every window. They don't require disabling SIP. If they are unavailable, every monitor has a single
+  container (`spaceId == nil`).
+- Looper never moves windows between Spaces. When a window shows up on a hidden Space (Mission Control, "Assign To",
+  the app moved it, its Space was removed), `reconcileWindowsWithNativeSpaces` treats it as a newly opened window of
+  that Space. Moves between two Spaces that are both shown (two monitors) are left to Looper's layout.
+- Windows of hidden Spaces are never laid out or hidden in a corner.
+- When the active Space changes, focus moves to the visible workspace of the new Space unless macOS already focused a
+  window there.
+- Containers of removed Spaces are garbage collected once their windows have moved elsewhere.
+- Windows of hidden Spaces are invisible (`WindowLifeStatus.invisible`). A window moved into a hidden Space takes
+  its weight from those invisible siblings, see `TreeNode.bind`.
 
 ## Layout subsystem
 

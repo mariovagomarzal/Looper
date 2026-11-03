@@ -25,15 +25,17 @@ final class MacWindow: Window {
     static func getOrRegister(windowId: OpaqueWindowId, macApp: MacApp) async throws -> MacWindow {
         if let existing = allWindowsMap[windowId] { return existing }
         let rect = try await macApp.getAxRect(windowId, .cancellable)
-        let data = try await unbindAndGetBindingDataForNewWindow(
-            windowId,
-            macApp,
-            isStartup
-                ? (rect?.center.monitorApproximation ?? mainMonitorInfo).visibleWorkspace
-                : globalFocus.workspace,
-            window: nil,
-            .cancellable,
-        )
+        let monitor = rect?.center.monitorApproximation ?? mainMonitorInfo
+        let workspace: Workspace = if let space = macApp.nativeWindowId(of: windowId).flatMap(nativeSpace(ofWindow:)),
+                                      nativeSpaces?.isActive(space) == false,
+                                      let container = workspacesContainer(forNativeSpace: space, fallbackMonitor: monitor)
+        {
+            // The window appeared on a native Space that isn't shown. It belongs to the workspaces of that Space
+            container.visibleWorkspace
+        } else {
+            isStartup ? monitor.visibleWorkspace : globalFocus.workspace
+        }
+        let data = try await unbindAndGetBindingDataForNewWindow(windowId, macApp, workspace, window: nil, .cancellable)
 
         // atomic synchronous section
         if let existing = allWindowsMap[windowId] { return existing }
@@ -218,6 +220,52 @@ extension Window {
             ? unbindAndGetBindingDataForNewTilingWindow(workspace, window: self)
             : try await unbindAndGetBindingDataForNewWindow(self.asMacWindow().windowId, self.asMacWindow().macApp, workspace, window: self, cm)
         bind(to: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
+    }
+}
+
+extension MacWindow {
+    /// The native Space the window belongs to. See ``nativeSpace(ofWindow:)``
+    @MainActor var nativeSpace: NativeSpaceId? {
+        macApp.nativeWindowId(of: windowId).flatMap(nativeSpace(ofWindow:))
+    }
+}
+
+/// Keeps every window in the workspaces of the native Space it belongs to.
+///
+/// Looper never moves windows between native Spaces. When a window shows up on another Space (dragged in Mission
+/// Control, "Assign To" menu, the app moved it, the Space was removed), the window is treated as a newly opened
+/// window of that Space.
+///
+/// Moves between two Spaces that are both shown (e.g. two monitors) are Looper's own business: the layout moves the
+/// window to the monitor of its workspace and macOS follows. Those are never reconciled, otherwise a window that is
+/// about to be laid out on another monitor would bounce back.
+@MainActor
+func reconcileWindowsWithNativeSpaces() async throws {
+    guard let snapshot = nativeSpaces else { return }
+    for window in MacWindow.allWindows {
+        guard let workspace = window.nodeWorkspace, let container = workspace.workspacesContainer else { continue }
+        let observed = window.nativeSpace
+        let target: WorkspacesContainer?
+        if container.isStale {
+            target = observed.flatMap { workspacesContainer(forNativeSpace: $0, fallbackMonitor: container.monitor.info) }
+                ?? container.monitor.activeWorkspacesContainer
+        } else if let observed, observed != container.spaceId, !(snapshot.isActive(observed) && container.isActive) {
+            target = workspacesContainer(forNativeSpace: observed, fallbackMonitor: container.monitor.info)
+        } else {
+            continue
+        }
+        guard let target, target !== container else { continue }
+        let targetWorkspace = target.visibleWorkspace
+        switch window.windowParentCases {
+            case .tilingContainer, .floatingWindowsContainer:
+                try await window.relayoutWindow(on: targetWorkspace, .cancellable)
+            case .macosFullscreenWindowsContainer:
+                window.bind(to: targetWorkspace.macOsNativeFullscreenWindowsContainer, adaptiveWeight: WEIGHT_DOESNT_MATTER, index: INDEX_BIND_LAST)
+            case .macosHiddenAppsWindowsContainer:
+                window.bind(to: targetWorkspace.macOsNativeHiddenAppsWindowsContainer, adaptiveWeight: WEIGHT_DOESNT_MATTER, index: INDEX_BIND_LAST)
+            case .macosMinimizedWindowsContainer, .macosPopupWindowsContainer, nil:
+                break
+        }
     }
 }
 

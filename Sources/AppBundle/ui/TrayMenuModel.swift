@@ -34,7 +34,8 @@ enum AxPermissionStatus: Equatable {
             return ($0.visibleWorkspace == focus.workspace && sortedMonitors.count > 1 ? "*" : "") + visibleWorkspaceName
         }
         .joined(separator: " │ ")
-    TrayMenuModel.shared.workspaces = Workspace.all.map {
+    // Workspaces of the focused monitor and native Space
+    TrayMenuModel.shared.workspaces = (focus.workspace.workspacesContainer?.workspaces ?? []).sorted().map {
         let apps = $0.allLeafWindowsRecursive.map { $0.app.name?.takeIf { !$0.isEmpty } }.filterNotNil().toSet()
         let dash = " - "
         let suffix = switch true {

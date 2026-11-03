@@ -25,16 +25,20 @@ func setUpWorkspacesForTests() {
     config.modes = [mainModeId: Mode(bindings: [:])]
     config.persistentWorkspaces = []
 
+    nativeSpacesForTests = nil
+    refreshNativeSpaces()
+
     for workspace in Workspace.all {
         for child in workspace.children {
             child.unbindFromParent()
         }
     }
-    check(Workspace.get(byName: "setUpWorkspacesForTests").focusWorkspace())
+    let container = mainMonitorInfo.toMonitorOrRearrangeMonitors().activeWorkspacesContainer
+    check(Workspace.get(byName: "setUpWorkspacesForTests", in: container).focusWorkspace())
     Workspace.garbageCollectUnusedWorkspaces()
     check(globalFocus.workspace.isEffectivelyEmpty)
     check(globalFocus.workspace === Workspace.all.singleOrNil(), Workspace.all.map(\.description).joined(separator: ", "))
-    check(mainMonitorInfo.setVisibleWorkspace(globalFocus.workspace))
+    check(globalFocus.workspace.workspacesContainer?.setVisibleWorkspace(globalFocus.workspace) == true)
 
     TestApp.shared.focusedWindow = nil
     TestApp.shared.windows = []

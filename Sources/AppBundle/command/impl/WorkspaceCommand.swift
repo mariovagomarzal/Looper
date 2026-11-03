@@ -34,7 +34,8 @@ struct WorkspaceCommand: Command {
                     .succ(io.err("Workspace '\(workspaceName)' is already focused. Tip: use --fail-if-noop to exit with non-zero code"))
             }
         } else {
-            return .from(bool: Workspace.get(byName: workspaceName).focusWorkspace())
+            let container = focusedWs.workspacesContainer ?? focusedWorkspacesContainer
+            return .from(bool: Workspace.get(byName: workspaceName, in: container).focusWorkspace())
         }
     }
 }
@@ -47,10 +48,11 @@ struct WorkspaceCommand: Command {
             .mapAllOrFailure(WorkspaceName.parse)
             .get()
             ?? []
-        let currentMonitor = current.workspaceMonitorInfo
+        // Workspaces of the same monitor and native Space
+        let container = current.workspacesContainer ?? focusedWorkspacesContainer
         let workspaces: [Workspace] = stdin != nil
-            ? stdinWorkspaces.map { Workspace.get(byName: $0.raw) }
-            : Workspace.all.filter { $0.workspaceMonitorInfo.rect.topLeftCorner == currentMonitor.rect.topLeftCorner }
+            ? stdinWorkspaces.map { Workspace.get(byName: $0.raw, in: container) }
+            : container.workspaces
                 .toSet()
                 .union([current])
                 .sorted()

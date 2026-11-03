@@ -155,7 +155,6 @@ private let configParser: [String: any ParserProtocol<Config>] = [
 
     "gaps": Parser(\.gaps, parseGaps),
     "focus-follows-mouse": Parser(\.focusFollowsMouse, parseFocusFollowsMouse),
-    "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
     // Deprecated
@@ -284,8 +283,7 @@ struct ParseConfigResult {
                 let commands = binding.commands.flatten()
                 return commands.filterIsInstance(of: WorkspaceCommand.self).compactMap { $0.args.target.val.workspaceNameOrNil()?.raw } +
                     commands.filterIsInstance(of: MoveNodeToWorkspaceCommand.self).compactMap { $0.args.target.val.workspaceNameOrNil()?.raw }
-            }
-            + (config.workspaceToMonitorForceAssignment).keys)
+            })
             .toOrderedSet()
     }
 

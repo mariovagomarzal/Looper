@@ -80,8 +80,12 @@ open class TreeNode: Equatable, AeroAny {
         if adaptiveWeight == WEIGHT_AUTO {
             switch relation {
                 case .tiling(let newParent):
-                    let newParentInhabitedChildren = newParent.inhabitedChildren
-                    self.adaptiveWeight = CGFloat(newParentInhabitedChildren.sumOfDouble { $0.getWeight(newParent.orientation) }).div(newParentInhabitedChildren.count) ?? 1
+                    // Weights are sizes in points. Prefer inhabited siblings, but if there are none (e.g. the windows
+                    // of a native Space that isn't shown are invisible), the other siblings still have meaningful
+                    // weights. Falling back to 1 next to a sibling of ~3000 would make the window ~0 points wide
+                    let inhabited = newParent.inhabitedChildren
+                    let siblings = inhabited.isEmpty ? newParent.children : inhabited
+                    self.adaptiveWeight = CGFloat(siblings.sumOfDouble { $0.getWeight(newParent.orientation) }).div(siblings.count) ?? 1
                 case .floatingWindow, .macosNativeFullscreenWindow,
                      .rootTilingContainer, .macosNativeMinimizedWindow,
                      .shimContainerRelation, .macosPopupWindow, .macosNativeHiddenAppWindow:

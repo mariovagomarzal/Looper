@@ -7,6 +7,7 @@ private struct MonitorInfoImpl {
     let rect: Rect
     let visibleRect: Rect
     let isMain: Bool
+    let displayUuid: String?
 }
 
 extension MonitorInfoImpl: MonitorInfo {
@@ -24,6 +25,8 @@ protocol MonitorInfo: AeroAny {
     var width: CGFloat { get }
     var height: CGFloat { get }
     var isMain: Bool { get }
+    /// CoreGraphics display UUID. Used to match monitors with native macOS Spaces
+    var displayUuid: String? { get }
 }
 
 final class LazyMonitorInfo: MonitorInfo {
@@ -33,6 +36,7 @@ final class LazyMonitorInfo: MonitorInfo {
     let width: CGFloat
     let height: CGFloat
     let isMain: Bool
+    let displayUuid: String?
     private var _rect: Rect?
     private var _visibleRect: Rect?
 
@@ -43,6 +47,7 @@ final class LazyMonitorInfo: MonitorInfo {
         self.height = screen.frame.height // Don't call rect because it would cause recursion during mainMonitor init
         self.screen = screen
         self.isMain = isMain
+        self.displayUuid = screen.displayUuid
     }
 
     var rect: Rect {
@@ -66,7 +71,14 @@ extension NSScreen {
             rect: rect,
             visibleRect: visibleRect,
             isMain: isMainScreen,
+            displayUuid: displayUuid,
         )
+    }
+
+    fileprivate var displayUuid: String? {
+        guard let displayId = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+        guard let uuid = unsafe CGDisplayCreateUUIDFromDisplayID(displayId.uint32Value)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String?
     }
 
     fileprivate var isMainScreen: Bool {
@@ -92,6 +104,7 @@ private let testMonitorInfo = MonitorInfoImpl(
     rect: testMonitorInfoRect,
     visibleRect: testMonitorInfoRect,
     isMain: true,
+    displayUuid: nil,
 )
 
 var mainMonitorInfo: MonitorInfo {
