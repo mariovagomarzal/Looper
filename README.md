@@ -1,11 +1,7 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/brand/icon-animated.svg">
-    <img src="resources/brand/icon-animated-light.svg" width="160" alt="Looper icon: the ring of the radial wheel with the macOS window buttons in its center">
-  </picture>
-</p>
-
-<h1 align="center">Looper</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="resources/brand/banner.svg">
+  <img src="resources/brand/banner-light.svg" width="100%" alt="Looper: tile with your keyboard, steer with a wheel. A tiling window manager for macOS.">
+</picture>
 
 > [!WARNING]
 > **Work in progress.** Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) by Nikita Bobko
@@ -39,8 +35,9 @@ the shared concepts.
 
 ## Brand
 
-The icon, its animated version and the one-color glyph live in [resources/brand/](./resources/brand) as SVG
-(`icon.svg`, `icon-light.svg`, `icon-animated.svg`, `icon-animated-light.svg`, `glyph.svg`). The app icon in
+The icon, its animated version, the README banner and the one-color glyph live in
+[resources/brand/](./resources/brand) as SVG (`icon.svg`, `icon-light.svg`, `icon-animated.svg`,
+`icon-animated-light.svg`, `banner.svg`, `banner-light.svg`, `glyph.svg`). The app icon in
 `resources/Assets.xcassets` is `icon.svg` rendered at 1024 px.
 
 ## Credits

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320">
+  <title>Looper: tile with your keyboard, steer with a wheel. A tiling window manager for macOS.</title>
+  <defs>
+    <linearGradient id="banner-background" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfcfe"/>
+      <stop offset="1" stop-color="#e6ebf3"/>
+    </linearGradient>
+    <filter id="banner-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="320" rx="24" fill="url(#banner-background)"/>
+  <rect x="254" y="70" width="180" height="180" rx="42" fill="#3478f6" fill-opacity="0.35" filter="url(#banner-glow)"/>
+  <svg x="244" y="60" width="200" height="200" viewBox="100 100 824 824">
+  <style>
+    .s, .i0, .i1, .i2, .i3 { transform-box: view-box; transform-origin: 512px 512px; animation: 8s ease-in-out infinite; }
+    .s { animation-name: s; } .i0 { animation-name: i0; } .i1 { animation-name: i1; } .i2 { animation-name: i2; } .i3 { animation-name: i3; }
+    @keyframes s { 0%, 20% { opacity: 0; transform: rotate(157.5deg); } 25%, 45% { opacity: 1; transform: rotate(157.5deg); } 50%, 70% { opacity: 1; transform: rotate(247.5deg); } 75%, 92% { opacity: 1; transform: rotate(337.5deg); } 97%, 100% { opacity: 0; transform: rotate(337.5deg); } }
+    @keyframes i0 { 0%, 20% { opacity: 1; transform: scale(1); } 25%, 92% { opacity: 0; transform: scale(.7); } 97%, 100% { opacity: 1; transform: scale(1); } }
+    @keyframes i1 { 0%, 20% { opacity: 0; transform: scale(.7); } 25%, 45% { opacity: 1; transform: scale(1); } 50%, 100% { opacity: 0; transform: scale(.7); } }
+    @keyframes i2 { 0%, 45% { opacity: 0; transform: scale(.7); } 50%, 70% { opacity: 1; transform: scale(1); } 75%, 100% { opacity: 0; transform: scale(.7); } }
+    @keyframes i3 { 0%, 70% { opacity: 0; transform: scale(.7); } 75%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(.7); } }
+    @media (prefers-reduced-motion: reduce) { .s, .i0, .i1, .i2, .i3 { animation: none; } .s, .i1, .i2, .i3 { opacity: 0; } }
+  </style>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2b52"/>
+      <stop offset="1" stop-color="#0a1124"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3478f6"/>
+      <stop offset="1" stop-color="#a3c8ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="190" fill="url(#background)"/>
+  <circle cx="512" cy="512" r="250" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="90"/>
+  <circle class="s" cx="512" cy="512" r="250" fill="none" stroke="url(#accent)" stroke-width="90" stroke-dasharray="196.35 1374.45"/>
+  <circle cx="512" cy="512" r="295" fill="none" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2"/>
+  <circle cx="512" cy="512" r="205" fill="none" stroke="#ffffff" stroke-opacity="0.2" stroke-width="2"/>
+  <g class="i0">
+    <circle cx="422" cy="512" r="36" fill="#ff5f57"/>
+    <circle cx="512" cy="512" r="36" fill="#febc2e"/>
+    <circle cx="602" cy="512" r="36" fill="#28c840"/>
+  </g>
+  <g class="i1" fill="none" stroke="#a3c8ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M604 512 H428 M494 446 L428 512 L494 578"/>
+  </g>
+  <g class="i2" fill="#a3c8ff">
+    <rect x="437" y="420" width="150" height="36" rx="14" fill-opacity="0.45"/>
+    <rect x="414" y="446" width="196" height="40" rx="16" fill-opacity="0.7"/>
+    <rect x="392" y="476" width="240" height="130" rx="24"/>
+  </g>
+  <g class="i3">
+    <rect x="402" y="432" width="220" height="160" rx="26" fill="none" stroke="#a3c8ff" stroke-width="22"/>
+    <rect x="512" y="432" width="110" height="160" rx="26" fill="#a3c8ff"/>
+    <rect x="512" y="432" width="42" height="160" fill="#a3c8ff"/>
+  </g>
+
+  </svg>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+    <text x="500" y="150" font-size="92" font-weight="800" letter-spacing="-3" fill="#10162a">Looper</text>
+    <text x="502" y="203" font-size="28" font-weight="500" fill="#3b4560">Tile with your keyboard. Steer with a wheel.</text>
+    <text x="502" y="241" font-size="18" fill="#5b6478">A tiling window manager for macOS.</text>
+  </g>
+</svg>
