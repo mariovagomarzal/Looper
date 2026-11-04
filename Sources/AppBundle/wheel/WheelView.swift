@@ -4,10 +4,9 @@
 import SwiftUI
 
 enum WheelMetrics {
-    static let diameter: CGFloat = 100
-    /// Room around the wheel for the shadow and the appearance scale effect
-    static let margin: CGFloat = 40
-    static var panelSize: CGFloat { diameter + 2 * margin }
+    /// Room around the wheel for the shadow and the appearance scale effect, as a fraction of its diameter
+    static let marginFraction: CGFloat = 0.4
+    static func panelSize(diameter: CGFloat) -> CGFloat { diameter * (1 + 2 * marginFraction) }
     /// Pointer offsets shorter than this select nothing
     static let deadZoneRadius: CGFloat = 10
     /// Scale of the wheel while the center is selected
@@ -53,11 +52,11 @@ enum WheelSelection: Equatable, Sendable, CustomStringConvertible {
     case direction(WheelDirection)
 
     /// `offset` is the pointer offset from where the wheel opened, in AppKit screen coordinates
-    init(offset: CGVector, thickness: CGFloat) {
+    init(offset: CGVector, diameter: CGFloat, thickness: CGFloat) {
         let distance = hypot(offset.dx, offset.dy)
         self = if distance < WheelMetrics.deadZoneRadius {
             .none
-        } else if distance < WheelMetrics.diameter / 2 - thickness {
+        } else if distance < diameter / 2 - thickness {
             .center
         } else {
             .direction(WheelDirection(dx: offset.dx, dy: offset.dy))
@@ -88,11 +87,13 @@ enum WheelSelection: Equatable, Sendable, CustomStringConvertible {
 struct WheelStyle: Equatable {
     /// 0 is a square, 1 is a circle
     var cornerFraction: CGFloat
+    var diameter: CGFloat
     var thickness: CGFloat
     var colors: WheelColors
 
     @MainActor init(_ config: WheelStyleConfig, colors: WheelColors) {
         cornerFraction = CGFloat(config.cornerRadius) / 100
+        diameter = CGFloat(config.size)
         thickness = CGFloat(config.thickness)
         self.colors = colors
     }
@@ -103,6 +104,8 @@ final class WheelModel {
     var isShown = false
     var isShadowShown = false
     var style = WheelStyle(WheelStyleConfig(), colors: .system)
+    /// Side of the panel, which fits the biggest wheel of every profile
+    var panelSize = WheelMetrics.panelSize(diameter: CGFloat(WheelStyleConfig().size))
     private(set) var selection: WheelSelection = .none
     /// SF Symbol of the release action of the selection
     var icon: String? = nil
@@ -147,10 +150,10 @@ struct WheelView: View {
                     .transition(.scale(scale: 1.2).combined(with: unsafe .opacity))
             }
         }
-        .frame(width: WheelMetrics.diameter, height: WheelMetrics.diameter)
+        .frame(width: model.style.diameter, height: model.style.diameter)
         .shadow(color: .black.opacity(model.isShadowShown ? 0.22 : 0), radius: 12, y: 2)
         .scaleEffect(model.selection == .center ? WheelMetrics.centerScale : 1)
-        .frame(width: WheelMetrics.panelSize, height: WheelMetrics.panelSize)
+        .frame(width: model.panelSize, height: model.panelSize)
     }
 
     private var wheel: some View {
@@ -188,7 +191,7 @@ struct WheelView: View {
     /// The icon sits on a glass disc in the hole of the ring, so that it reads on any background
     private func iconView(_ icon: String, gradient: LinearGradient) -> some View {
         let hole = WheelHole(cornerFraction: model.style.cornerFraction, inset: model.style.thickness + WheelMetrics.iconGap)
-        let holeSide = WheelMetrics.diameter - 2 * (model.style.thickness + WheelMetrics.iconGap)
+        let holeSide = model.style.diameter - 2 * (model.style.thickness + WheelMetrics.iconGap)
         return ZStack {
             Color.clear
                 .glassEffect(.regular.tint(model.style.colors.start.opacity(0.04)), in: hole)

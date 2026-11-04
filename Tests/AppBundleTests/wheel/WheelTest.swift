@@ -44,7 +44,7 @@ final class WheelTest: XCTestCase {
         assertEquals(result.strErrors.sorted(), [
             "[ERROR] wheel.accent-color: Expected 'system', 'wallpaper', a '#RRGGBB' color, or an array of two '#RRGGBB' colors for a gradient",
             "[ERROR] wheel.corner-radius: Must be in [0, 100] range",
-            "[ERROR] wheel.thickness: Must be in [10, 35] range",
+            "[ERROR] wheel.thickness: Must be in [10, 60] range",
         ])
     }
 
@@ -236,14 +236,16 @@ final class WheelTest: XCTestCase {
 
     func testSelectionZones() {
         let thickness: CGFloat = 22 // The ring starts 50 - 22 = 28 points away from the center
-        assertEquals(WheelSelection(offset: CGVector(dx: 5, dy: 5), thickness: thickness), .none)
-        assertEquals(WheelSelection(offset: CGVector(dx: 20, dy: 0), thickness: thickness), .center)
-        assertEquals(WheelSelection(offset: CGVector(dx: 40, dy: 0), thickness: thickness), .direction(.east))
-        assertEquals(WheelSelection(offset: CGVector(dx: 0, dy: 40), thickness: thickness), .direction(.north))
-        assertEquals(WheelSelection(offset: CGVector(dx: -30, dy: -30), thickness: thickness), .direction(.southWest))
-        assertEquals(WheelSelection(offset: CGVector(dx: -40, dy: 5), thickness: thickness), .direction(.west))
+        assertEquals(WheelSelection(offset: CGVector(dx: 5, dy: 5), diameter: 100, thickness: thickness), .none)
+        assertEquals(WheelSelection(offset: CGVector(dx: 20, dy: 0), diameter: 100, thickness: thickness), .center)
+        assertEquals(WheelSelection(offset: CGVector(dx: 40, dy: 0), diameter: 100, thickness: thickness), .direction(.east))
+        assertEquals(WheelSelection(offset: CGVector(dx: 0, dy: 40), diameter: 100, thickness: thickness), .direction(.north))
+        assertEquals(WheelSelection(offset: CGVector(dx: -30, dy: -30), diameter: 100, thickness: thickness), .direction(.southWest))
+        assertEquals(WheelSelection(offset: CGVector(dx: -40, dy: 5), diameter: 100, thickness: thickness), .direction(.west))
+        // A bigger wheel makes the center zone bigger
+        assertEquals(WheelSelection(offset: CGVector(dx: 40, dy: 0), diameter: 160, thickness: thickness), .center)
         // A thicker ring makes the center zone smaller
-        assertEquals(WheelSelection(offset: CGVector(dx: 20, dy: 0), thickness: 35), .direction(.east))
+        assertEquals(WheelSelection(offset: CGVector(dx: 20, dy: 0), diameter: 100, thickness: 35), .direction(.east))
     }
 
     func testVibrantAccent() {
@@ -261,7 +263,7 @@ final class WheelTest: XCTestCase {
     }
 
     func testPointerFollowsVisibleLocation() {
-        var pointer = WheelPointer(origin: CGPoint(x: 500, y: 500))
+        var pointer = WheelPointer(origin: CGPoint(x: 500, y: 500), maxOvershoot: 100)
         // Far away and back: the offset always matches the visible pointer
         assertEquals(pointer.move(to: CGPoint(x: 800, y: 500), eventDelta: CGVector(dx: 300, dy: 0)), CGVector(dx: 300, dy: 0))
         assertEquals(pointer.move(to: CGPoint(x: 700, y: 500), eventDelta: CGVector(dx: -100, dy: 0)), CGVector(dx: 200, dy: 0))
@@ -269,7 +271,7 @@ final class WheelTest: XCTestCase {
 
     func testPointerOvershootsScreenEdges() {
         // The wheel opened 10 points away from the left edge of the screen
-        var pointer = WheelPointer(origin: CGPoint(x: 10, y: 500))
+        var pointer = WheelPointer(origin: CGPoint(x: 10, y: 500), maxOvershoot: 100)
         assertEquals(pointer.move(to: CGPoint(x: 0, y: 500), eventDelta: CGVector(dx: -10, dy: 0)), CGVector(dx: -10, dy: 0))
         // Pinned against the edge, the reported movement still counts
         assertEquals(pointer.move(to: CGPoint(x: 0, y: 500), eventDelta: CGVector(dx: -30, dy: 0)), CGVector(dx: -40, dy: 0))
@@ -279,7 +281,7 @@ final class WheelTest: XCTestCase {
         assertEquals(pointer.move(to: CGPoint(x: 5, y: 520), eventDelta: CGVector(dx: 5, dy: 0)), CGVector(dx: -5, dy: 20))
         // The overshoot is bounded
         _ = pointer.move(to: CGPoint(x: 0, y: 520), eventDelta: CGVector(dx: -5, dy: 0))
-        assertEquals(pointer.move(to: CGPoint(x: 0, y: 520), eventDelta: CGVector(dx: -1000, dy: 0)), CGVector(dx: -10 - WheelPointer.maxOvershoot, dy: 20))
+        assertEquals(pointer.move(to: CGPoint(x: 0, y: 520), eventDelta: CGVector(dx: -1000, dy: 0)), CGVector(dx: -110, dy: 20))
     }
 
     func testTapMachineDelaysSwitchesCausedByReleases() {
@@ -435,6 +437,24 @@ final class WheelTest: XCTestCase {
         XCTAssertNotNil(wheel.profiles["quiet"]?.action(.right, .release))
 
         assertEquals(parseConfig("wheel.preview = 'some'").strErrors, ["[ERROR] wheel.preview: Expected 'off', 'target', 'all'"])
+    }
+
+    func testParseSize() {
+        let result = parseConfig(
+            """
+            wheel.size = 160
+            wheel.thickness = 50
+            [wheel.profiles.small]
+            size = 60
+            """,
+        )
+        assertEquals(result.config.wheel.profiles["default"]?.style.size, 160)
+        assertEquals(result.config.wheel.profiles["default"]?.style.thickness, 50)
+        // The inherited thickness doesn't fit: it's bounded
+        assertEquals(result.config.wheel.profiles["small"]?.style.thickness, 15)
+        assertEquals(result.strErrors, ["[ERROR] wheel.profiles.small: The thickness (50) leaves no room for the center: a wheel of size 60 takes at most 15"])
+        assertEquals(parseConfig("wheel.thickness = 40").strErrors, ["[ERROR] wheel: The thickness (40) leaves no room for the center: a wheel of size 100 takes at most 35"])
+        assertEquals(parseConfig("wheel.size = 20").strErrors, ["[ERROR] wheel.size: Must be in [60, 240] range"])
     }
 
     func testParseIconConfig() {

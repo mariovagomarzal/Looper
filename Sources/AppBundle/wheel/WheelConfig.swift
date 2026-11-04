@@ -55,6 +55,8 @@ struct WheelProfile: Sendable {
 struct WheelStyleConfig: Equatable, Sendable {
     /// Percentage of the maximum corner radius: 0 is a square, 100 is a circle
     var cornerRadius: Int = 100
+    /// Diameter in points
+    var size: Int = 100
     /// Points. Bounded so that the center zone stays reachable
     var thickness: Int = 22
     var accentColor: WheelAccentColor = .system
@@ -70,13 +72,19 @@ struct WheelStyleConfig: Equatable, Sendable {
     var icons: Bool = true
 
     static let cornerRadiusRange = 0 ... 100
-    static let thicknessRange = 10 ... 35
+    static let sizeRange = 60 ... 240
+    static let thicknessRange = 10 ... 60
+    /// The hole of the ring keeps at least this radius, so that the center zone stays reachable past the dead zone
+    static let minHoleRadius = 15
+
+    var maxThickness: Int { size / 2 - Self.minHoleRadius }
     static let previewCornerRadiusRange = 0 ... 40
     static let previewBorderWidthRange = 0 ... 10
 
     func applying(_ overrides: WheelStyleOverrides) -> WheelStyleConfig {
         WheelStyleConfig(
             cornerRadius: overrides.cornerRadius ?? cornerRadius,
+            size: overrides.size ?? size,
             thickness: overrides.thickness ?? thickness,
             accentColor: overrides.accentColor ?? accentColor,
             haptics: overrides.haptics ?? haptics,
@@ -172,6 +180,7 @@ func matchWheelTrigger(_ triggers: [WheelTriggerBinding], fnDown: Bool, _ presse
 /// Style keys that a profile sets. The rest are inherited
 struct WheelStyleOverrides: Withable, Equatable, Sendable {
     var cornerRadius: Int? = nil
+    var size: Int? = nil
     var thickness: Int? = nil
     var accentColor: WheelAccentColor? = nil
     var haptics: Bool? = nil
@@ -210,6 +219,7 @@ private let iconKey = "icon"
 
 private let wheelParser: [String: any ParserProtocol<WheelDraft>] = [
     "corner-radius": Parser(\.style.cornerRadius, parseCornerRadius),
+    "size": Parser(\.style.size) { parseIntInRange($0, $1, WheelStyleConfig.sizeRange).map(Optional.some) },
     "thickness": Parser(\.style.thickness, parseThickness),
     "accent-color": Parser(\.style.accentColor, parseOptionalAccentColor),
     "haptics": Parser(\.style.haptics, parseOptionalBool),
@@ -224,6 +234,7 @@ private let wheelParser: [String: any ParserProtocol<WheelDraft>] = [
 
 private let profileParser: [String: any ParserProtocol<WheelProfileDraft>] = [
     "corner-radius": Parser(\.style.cornerRadius, parseCornerRadius),
+    "size": Parser(\.style.size) { parseIntInRange($0, $1, WheelStyleConfig.sizeRange).map(Optional.some) },
     "thickness": Parser(\.style.thickness, parseThickness),
     "accent-color": Parser(\.style.accentColor, parseOptionalAccentColor),
     "haptics": Parser(\.style.haptics, parseOptionalBool),
@@ -401,6 +412,13 @@ private func parseWheelAccentColor(_ raw: OrderedJson, _ backtrace: ConfigBacktr
 
 // MARK: - Inheritance
 
+/// Keeps the center zone reachable. Returns the error if the thickness had to be reduced
+private func boundThickness(_ style: inout WheelStyleConfig) -> String? {
+    guard style.thickness > style.maxThickness else { return nil }
+    defer { style.thickness = style.maxThickness }
+    return "The thickness (\(style.thickness)) leaves no room for the center: a wheel of size \(style.size) takes at most \(style.maxThickness)"
+}
+
 /// Every profile starts from the style of 'default' (the top-level style keys plus its own table). A profile that
 /// extends another one inherits its style and its actions, and overrides them key by key: style keys one by one, and
 /// actions per (slot, finish) pair. An empty command ('') unbinds an inherited action. Icons describe the release action,
@@ -426,7 +444,11 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
         drafts[name]?.condition = nil
     }
 
-    let baseStyle = WheelStyleConfig().applying(draft.style).applying(drafts[defaultWheelProfile]?.style ?? WheelStyleOverrides())
+    var baseStyle = WheelStyleConfig().applying(draft.style)
+    if let error = boundThickness(&baseStyle) {
+        c.errors.append(.init(backtrace, error))
+    }
+    baseStyle = baseStyle.applying(drafts[defaultWheelProfile]?.style ?? WheelStyleOverrides())
     var resolved: [String: WheelProfile] = [:]
     func resolve(_ name: String, _ visiting: [String]) -> WheelProfile {
         if let profile = resolved[name] { return profile }
@@ -454,6 +476,11 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
             profile.icons[slot] = nil
         }
         profile.icons.merge(profileDraft.actions.icons) { $1 }
+        // The style a profile inherits fits already, so only profiles that change the size or the thickness can break it
+        let setsShape = profileDraft.style.size != nil || profileDraft.style.thickness != nil
+        if setsShape, let error = boundThickness(&profile.style) {
+            c.errors.append(.init(profilesBacktrace + .key(name), error))
+        }
         resolved[name] = profile
         return profile
     }

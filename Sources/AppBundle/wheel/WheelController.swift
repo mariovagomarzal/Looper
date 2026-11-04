@@ -15,7 +15,7 @@ final class WheelController {
 
     private let model = WheelModel()
     private lazy var panel: WheelPanel = WheelPanel(model: model)
-    private var pointer = WheelPointer(origin: .zero)
+    private var pointer = WheelPointer(origin: .zero, maxOvershoot: 0)
     private var lastOffset: CGVector = .zero
     private var mouseMonitor: Any? = nil
     private var orderOutTask: Task<(), Never>? = nil
@@ -78,13 +78,16 @@ final class WheelController {
         orderOutTask = nil
 
         let origin = NSEvent.mouseLocation
-        pointer = WheelPointer(origin: origin)
+        // Profiles switch while the wheel is open, so the panel and the overshoot fit the biggest one
+        let maxDiameter = CGFloat(config.wheel.profiles.values.map(\.style.size).max() ?? WheelStyleConfig().size)
+        pointer = WheelPointer(origin: origin, maxOvershoot: maxDiameter)
         lastOffset = .zero
         model.style = style(of: profile, at: origin)
+        model.panelSize = WheelMetrics.panelSize(diameter: maxDiameter)
         model.reset()
 
-        let size = WheelMetrics.panelSize
-        panel.setFrameOrigin(CGPoint(x: origin.x - size / 2, y: origin.y - size / 2))
+        let size = model.panelSize
+        panel.setFrame(CGRect(x: origin.x - size / 2, y: origin.y - size / 2, width: size, height: size), display: false)
         panel.orderFrontRegardless()
         // Any pending layout must happen before the appearance animation starts
         panel.contentView?.layoutSubtreeIfNeeded()
@@ -107,7 +110,7 @@ final class WheelController {
         let newStyle = style(of: profile, at: pointer.origin)
         withAnimation(.smooth(duration: 0.25)) { model.style = newStyle }
         // A thicker or thinner ring moves the boundary between the center and the directions
-        _ = model.select(WheelSelection(offset: lastOffset, thickness: newStyle.thickness))
+        _ = model.select(WheelSelection(offset: lastOffset, diameter: newStyle.diameter, thickness: newStyle.thickness))
         updateIcon()
         updatePreview()
         wheelLog.notice("switched: \(name, privacy: .public)")
@@ -179,7 +182,7 @@ final class WheelController {
     private func pointerMoved(_ event: NSEvent) {
         guard isOpen else { return }
         lastOffset = pointer.move(to: NSEvent.mouseLocation, eventDelta: CGVector(dx: event.deltaX, dy: -event.deltaY))
-        let selection = WheelSelection(offset: lastOffset, thickness: model.style.thickness)
+        let selection = WheelSelection(offset: lastOffset, diameter: model.style.diameter, thickness: model.style.thickness)
         guard model.select(selection) else { return }
         if selection != .none, profile.style.haptics {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
@@ -259,13 +262,13 @@ struct WheelPointer {
     let origin: CGPoint
     private var last: CGPoint
     private var overshoot: CGVector = .zero
+    /// Enough to reach any direction from the edge: the diameter of the wheel
+    let maxOvershoot: CGFloat
 
-    /// Enough to reach any direction from the edge
-    static let maxOvershoot = WheelMetrics.diameter
-
-    init(origin: CGPoint) {
+    init(origin: CGPoint, maxOvershoot: CGFloat) {
         self.origin = origin
         self.last = origin
+        self.maxOvershoot = maxOvershoot
     }
 
     /// `eventDelta` is the movement reported by the event, with `dy` growing upwards. Returns the new offset
@@ -277,7 +280,7 @@ struct WheelPointer {
     }
 
     private func clamp(_ value: CGFloat) -> CGFloat {
-        min(max(value, -Self.maxOvershoot), Self.maxOvershoot)
+        min(max(value, -maxOvershoot), maxOvershoot)
     }
 }
 
@@ -285,7 +288,7 @@ struct WheelPointer {
 private final class WheelPanel: NSPanel {
     init(model: WheelModel) {
         super.init(
-            contentRect: CGRect(x: 0, y: 0, width: WheelMetrics.panelSize, height: WheelMetrics.panelSize),
+            contentRect: CGRect(x: 0, y: 0, width: model.panelSize, height: model.panelSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true,

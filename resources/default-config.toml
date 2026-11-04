@@ -86,7 +86,10 @@ gaps.outer.right =      0
 # Radial wheel, shown while holding fn
 # Corner radius in percent: 0 is a square, 100 is a circle
 wheel.corner-radius = 100
-# Ring thickness in points, from 10 to 35
+# Diameter in points, from 60 to 240
+wheel.size = 100
+# Ring thickness in points, from 10 to 60. The ring leaves a center of at least 15 points of radius, so the thickness
+# is at most size / 2 - 15 (35 for the default size)
 wheel.thickness = 22
 # Selection color: 'system' (macOS accent color), 'wallpaper' (most vibrant color of the wallpaper),
 # a custom color like '#3478f6', or two custom colors for a gradient like ['#3478f6', '#a3c8ff']
