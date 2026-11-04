@@ -141,7 +141,7 @@ final class WheelTest: XCTestCase {
         XCTAssertTrue(errors.contains("[ERROR] wheel.profiles.c.extends: Unknown wheel profile 'unknown'"))
         XCTAssertTrue(errors.contains { $0.contains("extend each other in a cycle") })
         XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.c.actions.sideways: Unknown wheel slot") })
-        XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.c.actions.left.double-click: Unknown key. Possible values: release, left-click, right-click, other-click, preview") })
+        XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.c.actions.left.double-click: Unknown key. Possible values: release, left-click, right-click, other-click, preview, icon") })
         XCTAssertTrue(errors.contains("[ERROR] wheel.triggers.fn: Unknown wheel profile 'unknown'"))
         XCTAssertTrue(errors.contains("[ERROR] wheel.triggers.shift-fn: 'fn-shift' is declared twice"))
         XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.triggers.fn-foo: Can't parse 'fn-foo'") })
@@ -435,6 +435,70 @@ final class WheelTest: XCTestCase {
         XCTAssertNotNil(wheel.profiles["quiet"]?.action(.right, .release))
 
         assertEquals(parseConfig("wheel.preview = 'some'").strErrors, ["[ERROR] wheel.preview: Expected 'off', 'target', 'all'"])
+    }
+
+    func testParseIconConfig() {
+        let result = parseConfig(
+            """
+            [wheel.profiles.default.actions]
+            left = { release = 'move left', icon = 'star' }
+            right = { release = 'move right', icon = '' }
+            up = 'echo -- hi'
+            down = 'echo -- hi && layout accordion tiles'
+            down-left = { release = 'move left', icon = 'star' }
+
+            [wheel.profiles.child]
+            extends = 'default'
+            [wheel.profiles.child.actions]
+            down-left = 'focus left'
+            up = { icon = 'heart' }
+
+            [wheel.profiles.plain]
+            icons = false
+            """,
+        )
+        assertEquals(result.errors, [])
+        let profiles = result.config.wheel.profiles
+        assertEquals(profiles["default"]?.icon(.left), "star")
+        assertEquals(profiles["default"]?.icon(.right), nil)
+        // Commands without an icon are skipped
+        assertEquals(profiles["default"]?.icon(.up), nil)
+        assertEquals(profiles["default"]?.icon(.down), "rectangle.stack")
+        assertEquals(profiles["default"]?.icon(.center), nil)
+        // Icons are inherited, unless the profile rebinds the release action
+        assertEquals(profiles["child"]?.icon(.left), "star")
+        assertEquals(profiles["child"]?.icon(.downLeft), "arrow.left.circle")
+        assertEquals(profiles["child"]?.icon(.up), "heart")
+        assertEquals(profiles["plain"]?.icon(.left), nil)
+
+        assertEquals(
+            parseConfig("wheel.profiles.default.actions.left = { release = 'move left', icon = 'no-such-symbol' }").strErrors,
+            ["[ERROR] wheel.profiles.default.actions.left.icon: Unknown SF Symbol 'no-such-symbol'"],
+        )
+    }
+
+    func testAutoIconsExist() {
+        let commands = [
+            "move left", "move up", "swap left", "swap up", "swap dfs-next", "focus right", "focus dfs-next", "focus-back-and-forth",
+            "join-with left", "layout accordion tiles", "layout v_tiles", "layout floating tiling", "layout tiling", "layout horizontal",
+            "fullscreen", "macos-native-fullscreen", "macos-native-minimize", "workspace next", "workspace prev", "workspace 1",
+            "workspace W", "workspace dev", "workspace-back-and-forth", "move-node-to-workspace next", "move-node-to-monitor next",
+            "move-workspace-to-monitor next", "swap-workspace-with-monitor next", "focus-monitor left", "balance-sizes",
+            "flatten-workspace-tree", "split vertical", "split horizontal", "resize smart +50", "resize smart -50", "resize width 500",
+            "close", "close-all-windows-but-current", "exec-and-forget open .", "mode main", "reload-config", "enable toggle",
+            "volume up", "move-mouse window-lazy-center",
+        ] + PlacementPreset.allCases.map { "place \($0.rawValue)" } + ["place rect 0 0 50 50"]
+        for command in commands {
+            guard let parsed = parseCommand(command).cmdOrNil else {
+                XCTFail("Can't parse '\(command)'")
+                continue
+            }
+            guard let icon = wheelAutoIcon(parsed) else {
+                XCTFail("No icon for '\(command)'")
+                continue
+            }
+            XCTAssertTrue(isSfSymbol(icon), "'\(icon)' of '\(command)' isn't an SF Symbol")
+        }
     }
 
     func testComputePreview() async {

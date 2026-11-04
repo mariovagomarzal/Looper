@@ -90,6 +90,8 @@ Sources/AppBundle/wheel/
   action in a light refresh session.
 - `WheelView.swift`: SwiftUI view, selection zones (dead zone, center, eight directions) and animatable shapes.
 - `wheel open|cancel` commands open the wheel without holding keys, for bindings, scripts and the CLI.
+- `WheelIcon.swift`: the SF Symbol shown in the center for the release action of the selection, set per slot or
+  derived from the first command of the action that has one.
 - `WheelPreview.swift`: previews of the release action of the selection, drawn in one transparent panel per screen.
   `place`, `fullscreen` and `focus` are computed directly (`FocusCommand.destination`; floating windows seen as tiling
   ones go through `FloatingAsTilingPlan`, whose frames are read first and applied synchronously in a snapshot).

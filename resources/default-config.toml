@@ -103,6 +103,11 @@ wheel.haptics = true
 wheel.preview = 'target'
 wheel.preview-corner-radius = 10   # Points, from 0 to 40
 wheel.preview-border-width = 2     # Points, from 0 to 10
+# While a slot is selected, show an SF Symbol for its release action in the center of the wheel. The icon is derived
+# from the first command of the action that has one (e.g. an arrow for 'move left'). A slot can pick any SF Symbol, or
+# hide it with '': left = { release = '...', icon = 'star' }. A profile that rebinds the release action of a slot
+# without setting its icon gets the derived one
+wheel.icons = true
 
 # Hold these modifiers to open the wheel with a profile, and release them to run the selected action.
 # While the wheel is open, the profile follows the held modifiers (e.g. press shift on top of fn).

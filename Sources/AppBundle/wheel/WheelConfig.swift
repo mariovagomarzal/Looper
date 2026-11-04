@@ -32,8 +32,17 @@ struct WheelProfile: Sendable {
     var actions: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
     /// Per slot overrides of `style.preview`
     var previews: [WheelSlot: WheelPreviewMode] = [:]
+    /// SF Symbols set per slot. An empty name hides the icon
+    var icons: [WheelSlot: String] = [:]
 
     func preview(_ slot: WheelSlot) -> WheelPreviewMode { previews[slot] ?? style.preview }
+
+    /// The SF Symbol for the release action of the slot: the one set in the config, or one derived from the action
+    func icon(_ slot: WheelSlot) -> String? {
+        guard style.icons else { return nil }
+        if let icon = icons[slot] { return icon.isEmpty ? nil : icon }
+        return action(slot, .release).flatMap(wheelAutoIcon)
+    }
     /// Makes the profile a variant of the profile it extends: it replaces that profile when the wheel opens and the
     /// condition succeeds. Evaluated like 'test' commands, in the context of the focused window
     var condition: Shell<any Command>? = nil
@@ -57,6 +66,8 @@ struct WheelStyleConfig: Equatable, Sendable {
     var previewCornerRadius: Int = 10
     /// Points. 0 draws no border
     var previewBorderWidth: Int = 2
+    /// An icon for the release action of the selection in the center of the wheel
+    var icons: Bool = true
 
     static let cornerRadiusRange = 0 ... 100
     static let thicknessRange = 10 ... 35
@@ -72,6 +83,7 @@ struct WheelStyleConfig: Equatable, Sendable {
             preview: overrides.preview ?? preview,
             previewCornerRadius: overrides.previewCornerRadius ?? previewCornerRadius,
             previewBorderWidth: overrides.previewBorderWidth ?? previewBorderWidth,
+            icons: overrides.icons ?? icons,
         )
     }
 }
@@ -166,6 +178,7 @@ struct WheelStyleOverrides: Withable, Equatable, Sendable {
     var preview: WheelPreviewMode? = nil
     var previewCornerRadius: Int? = nil
     var previewBorderWidth: Int? = nil
+    var icons: Bool? = nil
 }
 
 private struct WheelProfileDraft: Withable, Sendable {
@@ -178,6 +191,7 @@ private struct WheelProfileDraft: Withable, Sendable {
 private struct WheelActionsDraft: Sendable {
     var actions: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
     var previews: [WheelSlot: WheelPreviewMode] = [:]
+    var icons: [WheelSlot: String] = [:]
 }
 
 private struct WheelDraft: Withable, Sendable {
@@ -192,6 +206,7 @@ private let triggersKey = "triggers"
 private let extendsKey = "extends"
 private let conditionKey = "if"
 private let previewKey = "preview"
+private let iconKey = "icon"
 
 private let wheelParser: [String: any ParserProtocol<WheelDraft>] = [
     "corner-radius": Parser(\.style.cornerRadius, parseCornerRadius),
@@ -201,6 +216,7 @@ private let wheelParser: [String: any ParserProtocol<WheelDraft>] = [
     "preview": Parser(\.style.preview, parseOptionalPreviewMode),
     "preview-corner-radius": Parser(\.style.previewCornerRadius) { parseIntInRange($0, $1, WheelStyleConfig.previewCornerRadiusRange).map(Optional.some) },
     "preview-border-width": Parser(\.style.previewBorderWidth) { parseIntInRange($0, $1, WheelStyleConfig.previewBorderWidthRange).map(Optional.some) },
+    "icons": Parser(\.style.icons, parseOptionalBool),
     profilesKey: Parser(\.profiles, parseProfileDrafts),
     triggersKey: Parser(\.triggers) { parseTriggers($0, $1, &$2) },
     "release-delay": Parser(\.releaseDelay) { parseIntInRange($0, $1, WheelConfig.releaseDelayRange).map(Optional.some) },
@@ -214,6 +230,7 @@ private let profileParser: [String: any ParserProtocol<WheelProfileDraft>] = [
     "preview": Parser(\.style.preview, parseOptionalPreviewMode),
     "preview-corner-radius": Parser(\.style.previewCornerRadius) { parseIntInRange($0, $1, WheelStyleConfig.previewCornerRadiusRange).map(Optional.some) },
     "preview-border-width": Parser(\.style.previewBorderWidth) { parseIntInRange($0, $1, WheelStyleConfig.previewBorderWidthRange).map(Optional.some) },
+    "icons": Parser(\.style.icons, parseOptionalBool),
     extendsKey: Parser(\.extends) { parseString($0, $1).map(Optional.some) },
     conditionKey: Parser(\.condition, parseCondition),
     "actions": Parser(\.actions, parseActions),
@@ -294,8 +311,12 @@ private func parseActions(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c:
                     result.previews[slot] = parsePreviewMode(command, backtrace).getOrNil(appendErrorTo: &c.errors)
                     continue
                 }
+                if finishKey == iconKey {
+                    result.icons[slot] = parseIcon(command, backtrace).getOrNil(appendErrorTo: &c.errors)
+                    continue
+                }
                 guard let finish = WheelFinish(rawValue: finishKey) else {
-                    c.errors.append(.init(backtrace, "Unknown key. Possible values: \((WheelFinish.allCases.map(\.rawValue) + [previewKey]).joined(separator: ", "))"))
+                    c.errors.append(.init(backtrace, "Unknown key. Possible values: \((WheelFinish.allCases.map(\.rawValue) + [previewKey, iconKey]).joined(separator: ", "))"))
                     continue
                 }
                 slotActions[finish] = parseShellOfCommandsForConfig(command, backtrace, &c)
@@ -307,6 +328,13 @@ private func parseActions(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c:
         }
     }
     return result
+}
+
+/// An SF Symbol name, or '' for no icon
+private func parseIcon(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<String> {
+    parseString(raw, backtrace).flatMap { name in
+        name.isEmpty || isSfSymbol(name) ? .success(name) : .failure(.init(backtrace, "Unknown SF Symbol '\(name)'"))
+    }
 }
 
 private func parseTriggers(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> [WheelTriggerBinding] {
@@ -375,7 +403,8 @@ private func parseWheelAccentColor(_ raw: OrderedJson, _ backtrace: ConfigBacktr
 
 /// Every profile starts from the style of 'default' (the top-level style keys plus its own table). A profile that
 /// extends another one inherits its style and its actions, and overrides them key by key: style keys one by one, and
-/// actions per (slot, finish) pair. An empty command ('') unbinds an inherited action.
+/// actions per (slot, finish) pair. An empty command ('') unbinds an inherited action. Icons describe the release action,
+/// so a profile that rebinds it without setting the icon gets the automatic one.
 private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> WheelConfig {
     let profilesBacktrace = backtrace + .key(profilesKey)
     var drafts: [String: WheelProfileDraft] = [defaultWheelProfile: WheelProfileDraft()]
@@ -420,6 +449,11 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
             }
         }
         profile.previews = (parent?.previews ?? [:]).merging(profileDraft.actions.previews) { $1 }
+        profile.icons = parent?.icons ?? [:]
+        for (slot, finishes) in profileDraft.actions.actions where finishes[.release] != nil {
+            profile.icons[slot] = nil
+        }
+        profile.icons.merge(profileDraft.actions.icons) { $1 }
         resolved[name] = profile
         return profile
     }

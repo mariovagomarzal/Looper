@@ -12,6 +12,8 @@ enum WheelMetrics {
     static let deadZoneRadius: CGFloat = 10
     /// Scale of the wheel while the center is selected
     static let centerScale: CGFloat = 0.85
+    /// Space between the ring and the disc of the icon
+    static let iconGap: CGFloat = 4
 }
 
 /// One of the eight directions the wheel can point to
@@ -102,6 +104,8 @@ final class WheelModel {
     var isShadowShown = false
     var style = WheelStyle(WheelStyleConfig(), colors: .system)
     private(set) var selection: WheelSelection = .none
+    /// SF Symbol of the release action of the selection
+    var icon: String? = nil
     /// Angle of the selector in SwiftUI degrees (clockwise from east). It accumulates turns, so that animations always
     /// take the short way around
     private(set) var selectorAngle: Double = 0
@@ -129,6 +133,7 @@ final class WheelModel {
 
     func reset() {
         selection = .none
+        icon = nil
     }
 }
 
@@ -172,7 +177,48 @@ struct WheelView: View {
 
             // Hairline that separates the ring from busy backgrounds
             ring.stroke(.white.opacity(0.18), lineWidth: 0.5)
+
+            if let icon = model.icon {
+                iconView(icon, gradient: gradient)
+                    .transition(.scale(scale: 0.6).combined(with: unsafe .opacity))
+            }
         }
+    }
+
+    /// The icon sits on a glass disc in the hole of the ring, so that it reads on any background
+    private func iconView(_ icon: String, gradient: LinearGradient) -> some View {
+        let hole = WheelHole(cornerFraction: model.style.cornerFraction, inset: model.style.thickness + WheelMetrics.iconGap)
+        let holeSide = WheelMetrics.diameter - 2 * (model.style.thickness + WheelMetrics.iconGap)
+        return ZStack {
+            Color.clear
+                .glassEffect(.regular.tint(model.style.colors.start.opacity(0.04)), in: hole)
+            Image(systemName: icon)
+                .font(.system(size: max(holeSide * 0.45, 8), weight: .semibold))
+                .foregroundStyle(gradient)
+                .contentTransition(.symbolEffect(.replace, options: .speed(2.5)))
+        }
+    }
+}
+
+/// The hole of the ring, `inset` points inside its outer edge
+struct WheelHole: Shape {
+    var cornerFraction: CGFloat
+    var inset: CGFloat
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(cornerFraction, inset) }
+        set {
+            cornerFraction = newValue.first
+            inset = newValue.second
+        }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let side = min(rect.width, rect.height)
+        let outerRect = CGRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side)
+        let radius = max(side / 2 * min(max(cornerFraction, 0), 1) - inset, 0)
+        let style: RoundedCornerStyle = cornerFraction >= 1 ? .circular : .continuous
+        return Path(roundedRect: outerRect.insetBy(dx: inset, dy: inset), cornerRadius: radius, style: style)
     }
 }
 

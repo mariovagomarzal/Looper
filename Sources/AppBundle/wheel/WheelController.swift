@@ -108,6 +108,7 @@ final class WheelController {
         withAnimation(.smooth(duration: 0.25)) { model.style = newStyle }
         // A thicker or thinner ring moves the boundary between the center and the directions
         _ = model.select(WheelSelection(offset: lastOffset, thickness: newStyle.thickness))
+        updateIcon()
         updatePreview()
         wheelLog.notice("switched: \(name, privacy: .public)")
     }
@@ -183,7 +184,14 @@ final class WheelController {
         if selection != .none, profile.style.haptics {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         }
+        updateIcon()
         updatePreview()
+    }
+
+    private func updateIcon() {
+        let icon = model.selection.slot.flatMap(profile.icon)
+        guard icon != model.icon else { return }
+        withAnimation(.spring(response: 0.12, dampingFraction: 0.9)) { model.icon = icon }
     }
 
     /// Outlines where the release action of the selection would put windows
