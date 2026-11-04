@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   # Use the system Xcode toolchain: no Nix compiler or Apple SDK, so the shell
   # doesn't set CC, SDKROOT or DEVELOPER_DIR, which break SwiftPM and actool.
   stdenv = pkgs.stdenvNoCC;
@@ -6,17 +10,19 @@
 
   # Development tools only. Swift, the macOS SDK, actool and codesign come from
   # the system Xcode; the app is never built with Nix.
-  packages = with pkgs; [
-    just
-    git
-    swiftformat
-    swiftlint
-    periphery
-    complgen
-    # The website and docs (docs/)
-    nodejs_22
-    pnpm
-  ];
+  packages = with pkgs;
+    [
+      just
+      git
+      swiftformat
+      swiftlint
+      complgen
+      # The website and docs (docs/)
+      nodejs_22
+      pnpm
+    ]
+    # Only for macOS. The Linux jobs of CI build the website and check commit messages
+    ++ lib.optionals stdenv.isDarwin [periphery];
 
   # Git hooks.
   git-hooks = {
