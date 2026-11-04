@@ -1,6 +1,5 @@
 {
   "name": "looper-docs",
-  "packageManager": "pnpm@12.9.0",
   "type": "module",
   "version": "0.0.1",
   "scripts": {

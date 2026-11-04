@@ -74,3 +74,7 @@ clean:
 # Run the website and docs locally.
 docs:
     cd docs && pnpm install --frozen-lockfile && pnpm dev
+
+# Build the website and docs, which fails on broken internal links.
+docs-build:
+    cd docs && pnpm install --frozen-lockfile && pnpm build

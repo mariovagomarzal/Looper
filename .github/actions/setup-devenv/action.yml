@@ -1,9 +1,10 @@
-name: Set up macOS
-description: Selects the Xcode that builds Looper and installs devenv, which provides the development tools.
+name: Set up devenv
+description: Installs devenv, which provides every development tool, and on macOS selects the Xcode that builds Looper.
 runs:
   using: composite
   steps:
     - name: Select Xcode
+      if: runner.os == 'macOS'
       shell: bash
       run: |
         sudo xcode-select --switch /Applications/Xcode_27.2.app
@@ -14,4 +15,4 @@ runs:
         name: devenv
     - name: Install devenv
       shell: bash
-      run: nix profile install nixpkgs#devenv
+      run: nix profile install github:cachix/devenv/v2.4.0

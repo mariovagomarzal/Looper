@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-macos
+      - uses: ./.github/actions/setup-devenv
       - run: devenv shell -- just check
 
   docs:
@@ -32,4 +32,5 @@ jobs:
         with:
           # Pages show when they were last updated, from the git history
           fetch-depth: 0
-      - uses: ./.github/actions/build-docs
+      - uses: ./.github/actions/setup-devenv
+      - run: devenv shell -- just docs-build
