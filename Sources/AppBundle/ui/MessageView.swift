@@ -77,6 +77,8 @@ struct MessageView: View {
                         case .config:
                             reloadConfigButton(showShortcutGroup: true, warningsAsErrors: model.message?.containsWarnings == true)
                             openConfigButton(showShortcutGroup: true)
+                        case .installation:
+                            quitButton()
                     }
                 }
                 let closeButton = Button("Close") { model.message = nil }.keyboardShortcut(.defaultAction)
@@ -110,6 +112,7 @@ public final class MessageModel: ObservableObject {
 
 public enum MessageType {
     case config
+    case installation
 }
 
 public struct Message: Hashable, Equatable {

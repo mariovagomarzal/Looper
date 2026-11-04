@@ -14,7 +14,8 @@ struct LooperApp: App {
     var body: some Scene {
         menuBar(viewModel: viewModel)
         getMessageWindow(messageModel: messageModel)
-            .onChange(of: messageModel.message) { _, message in
+            // A message can already be there on launch
+            .onChange(of: messageModel.message, initial: true) { _, message in
                 if message != nil {
                     openWindow(id: messageWindowId)
                 }
