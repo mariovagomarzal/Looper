@@ -30,3 +30,4 @@ Run everything through `devenv shell -- <command>`. Never build the app with Nix
 ## Git
 
 - Conventional Commits in English (gitlint checks them). Commit or push only when asked.
+- Raising `VERSION` on `main` publishes a GitHub release and the website.

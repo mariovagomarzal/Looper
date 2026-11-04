@@ -1,21 +1,28 @@
 ---
 title: Installation
-description: Build Looper from source, install it and grant it the Accessibility permission.
+description: Download or build Looper, install it and grant it the Accessibility permission.
 ---
 
 :::caution[Work in progress]
-Looper is under construction and has no published releases yet. For now, you build it from source. Expect breaking
-changes.
+Looper is under construction. Expect breaking changes.
 :::
 
-## Requirements
+Looper requires macOS 27 or later.
 
-- macOS 27 or later.
+## Download
+
+Download the zip of the [latest release](https://github.com/mariovagomarzal/Looper/releases/latest). It contains
+`Looper.app`, the `looper` command line tool in `bin/`, and the shell completions.
+
+## Build from source
+
+Building requires:
+
 - [Xcode](https://developer.apple.com/xcode/), which provides Swift, the macOS SDK and the build tools.
 - [devenv](https://devenv.sh/), which provides the development tools (`just`, the formatters and linters). It doesn't
   build the app: Swift and the SDK always come from Xcode.
 
-## Build
+Then:
 
 ```bash
 git clone https://github.com/mariovagomarzal/Looper.git
@@ -35,7 +42,7 @@ pass `--identity -` to sign ad hoc.
 2. Put the `looper` command line tool somewhere in your `PATH`, for example:
 
    ```bash
-   cp .build/dist/looper /usr/local/bin/
+   cp looper /usr/local/bin/
    ```
 
 3. Open Looper. It asks for the **Accessibility** permission, which it needs to move and resize windows. Grant it in

@@ -4,8 +4,7 @@
 </picture>
 
 > [!WARNING]
-> **Work in progress.** Looper is under construction and has no releases yet. Expect breaking changes and rough
-> edges.
+> **Work in progress.** Looper is under construction. Expect breaking changes and rough edges.
 
 Looper is a tiling window manager for macOS. It arranges your windows in a tree of containers as they open, and lets
 you move them around with key bindings, a radial wheel under the pointer, trackpad gestures, the mouse or the `looper`

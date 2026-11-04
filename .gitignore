@@ -3,3 +3,4 @@
 # New root .directories must be explicitly listed below
 /.*
 
+!/.github/

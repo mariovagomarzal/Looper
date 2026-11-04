@@ -1,0 +1,21 @@
+name: Build the docs
+description: Builds the website in docs/, which fails on broken internal links.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+      with:
+        package_json_file: docs/package.json
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: docs/pnpm-lock.yaml
+    - name: Install dependencies
+      shell: bash
+      working-directory: docs
+      run: pnpm install --frozen-lockfile
+    - name: Build
+      shell: bash
+      working-directory: docs
+      run: pnpm build

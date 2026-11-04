@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds a signed release of Looper.app and the CLI, packs them into .build/dist/Looper-v<version>.zip and tags the
-# commit v<version>. The version is the one in the VERSION file.
+# Builds a signed release of Looper.app and the CLI and packs them into .build/dist/Looper-v<version>.zip. The version
+# is the one in the VERSION file.
 #
 # Usage: scripts/release.sh [--identity <codesign identity>]
 set -euo pipefail
@@ -14,10 +14,6 @@ while test $# -gt 0; do
         *) echo "Unknown option $1" > /dev/stderr; exit 1 ;;
     esac
 done
-if git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
-    echo "Tag v$version already exists: bump VERSION first" > /dev/stderr
-    exit 1
-fi
 if ! test -z "$(git status --porcelain)"; then
     echo "The working tree must be clean: the release embeds the current commit hash" > /dev/stderr
     exit 1
@@ -50,5 +46,4 @@ cp -R .build/completion "$pack/shell-completion"
 cp -R -L legal "$pack/legal"
 (cd "$out" && zip -qry "Looper-v$version.zip" "Looper-v$version")
 
-git tag "v$version"
-echo "$out/Looper-v$version.zip (tagged v$version; push the tag with: git push origin v$version)"
+echo "$out/Looper-v$version.zip"

@@ -30,7 +30,7 @@ Run any recipe with `devenv shell -- just <recipe>`, or enter the environment wi
 | `just format`, `just lint` | Formats the code; checks the format, SwiftLint and Periphery. |
 | `just docs` | Runs these docs locally. |
 | `just completion` | Shell completions in `.build/completion`. |
-| `just release` | Signed release of the version in `VERSION`, in `.build/dist`, tagged `v<version>`. |
+| `just release` | Signed release zip of the version in `VERSION`, in `.build/dist`. |
 | `just reset-permission` | Resets the Accessibility permission of the debug app. |
 | `just clean` | Removes `.build`. |
 
@@ -71,8 +71,19 @@ sources with it.
 ## Versions
 
 `VERSION` is the only source of the version. Development builds report it with a `-dev` suffix, like `0.1.0-dev`. To
-release, set `VERSION` to the new version, run `just generate`, commit, and run `just release`: it builds the signed
-zip and tags the commit `v<version>`.
+release, set `VERSION` to the new version, run `just generate` and commit to `main`.
+
+## Continuous integration
+
+- **Check** runs on pushes to `main` and on pull requests against it: `just check` on macOS, and the build of the
+  website, which fails on broken internal links.
+- **Release** runs when a push to `main` raises `VERSION`. It repeats the checks, builds the signed zip, creates the
+  GitHub release with its tag, its checksum and notes from the Conventional Commits since the previous tag, and
+  publishes the website. A version that isn't newer than the latest release publishes nothing.
+- **Pages** publishes the website on its own when run by hand, to get a fix to the docs out without a release.
+
+Signing needs the `Looper Development` identity as the `LOOPER_CERTIFICATE_P12` secret (the exported `.p12`, in base64)
+and its password as `LOOPER_CERTIFICATE_PASSWORD`.
 
 ## Conventions
 

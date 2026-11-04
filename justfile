@@ -47,7 +47,7 @@ lint:
 
 # Full verification: generated sources are up to date, strict build, tests and lint.
 check: generate
-    git diff --exit-code -- Sources/Common/cmdHelpGenerated.swift Sources/Cli/subcommandDescriptionsGenerated.swift
+    git diff --exit-code -- Sources/Common/cmdHelpGenerated.swift Sources/Cli/subcommandDescriptionsGenerated.swift Sources/Common/versionGenerated.swift
     swift build --build-tests -Xswiftc -warnings-as-errors
     swift test
     just lint

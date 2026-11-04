@@ -1,0 +1,105 @@
+# Raising VERSION on main publishes a GitHub release of that version and the website.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - id: version
+        run: |
+          version=$(cat VERSION)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::'$version' isn't a version like 1.2.3"
+            exit 1
+          fi
+          latest=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
+          latest=${latest#v}
+          highest=$(printf '%s\n%s\n' "$version" "${latest:-0.0.0}" | sort -V | tail -n 1)
+          if [[ $version == 0.0.0 ]]; then
+            echo "::notice::0.0.0 is the version before the first release: nothing to publish"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          elif [[ $version == "$latest" || $highest != "$version" ]]; then
+            echo "::notice::$version isn't newer than the latest release (${latest}): nothing to publish"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  check:
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    uses: ./.github/workflows/check.yml
+
+  release:
+    needs: [version, check]
+    runs-on: xcode-27
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: ./.github/actions/setup-macos
+      - name: Import the signing identity
+        env:
+          CERTIFICATE_P12: ${{ secrets.LOOPER_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.LOOPER_CERTIFICATE_PASSWORD }}
+        run: |
+          if [[ -z $CERTIFICATE_P12 ]]; then
+            echo "::error::The LOOPER_CERTIFICATE_P12 and LOOPER_CERTIFICATE_PASSWORD secrets are missing"
+            exit 1
+          fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(uuidgen)
+          echo "$CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$keychain" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" login.keychain
+          rm "$RUNNER_TEMP/certificate.p12"
+      - name: Build the release
+        run: devenv shell -- just release
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/release-notes.sh > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+          cd .build/dist
+          shasum -a 256 "Looper-v$VERSION.zip" > "Looper-v$VERSION.zip.sha256"
+          gh release create "v$VERSION" "Looper-v$VERSION.zip" "Looper-v$VERSION.zip.sha256" \
+            --title "Looper v$VERSION" --notes-file "$RUNNER_TEMP/notes.md" --target "$GITHUB_SHA"
+      - name: Delete the signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+
+  pages:
+    needs: release
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
