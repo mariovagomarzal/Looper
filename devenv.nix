@@ -13,7 +13,7 @@
     swiftlint
     periphery
     complgen
-    # The website and docs (site/)
+    # The website and docs (docs/)
     nodejs_22
     pnpm
   ];

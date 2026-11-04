@@ -72,5 +72,5 @@ clean:
     rm -rf .build
 
 # Run the website and docs locally.
-site:
-    cd site && pnpm install --frozen-lockfile && pnpm dev
+docs:
+    cd docs && pnpm install --frozen-lockfile && pnpm dev

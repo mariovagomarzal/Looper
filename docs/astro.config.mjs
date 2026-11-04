@@ -50,20 +50,19 @@ export default defineConfig({
 				},
 				{
 					label: 'Reference',
-					items: [{ label: 'Configuration', slug: 'docs/configuration' }],
-				},
-				{
-					label: 'Commands',
-					collapsed: true,
-					items: [{ autogenerate: { directory: 'docs/commands' } }],
-				},
-				{
-					label: 'More',
 					items: [
-						{ label: 'Development', slug: 'docs/development' },
-						{ label: 'Credits', slug: 'docs/credits' },
+						{ label: 'Configuration', slug: 'docs/configuration' },
+						{ label: 'Commands', collapsed: true, items: [{ autogenerate: { directory: 'docs/commands' } }] },
 					],
 				},
+				{
+					label: 'Development',
+					items: [
+						{ label: 'Building and releasing', slug: 'docs/development' },
+						{ label: 'Architecture', slug: 'docs/architecture' },
+					],
+				},
+				{ label: 'Credits', slug: 'docs/credits' },
 			],
 		}),
 	],

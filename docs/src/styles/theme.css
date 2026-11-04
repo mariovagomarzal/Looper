@@ -71,3 +71,10 @@
 	font-size: var(--sl-text-sm);
 	vertical-align: top;
 }
+
+/* Groups nested in a sidebar section look like its links, not like section titles */
+.sidebar-content ul:not(.top-level) .group-label .large {
+	font-size: var(--sl-text-sm);
+	font-weight: 400;
+	color: var(--sl-color-gray-2);
+}

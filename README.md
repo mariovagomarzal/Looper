@@ -23,7 +23,7 @@ and its plain-text configuration. On top of that it adds:
 - **Side-specific modifiers**, like the left or the right alt only, and key bindings that follow your keyboard layout.
 - Commands that cross monitors, and moving and resizing floating windows from the keyboard.
 
-<!-- Video: Looper in 20 seconds (site/public/videos/hero.mp4). GitHub only plays videos uploaded as attachments:
+<!-- Video: Looper in 20 seconds (docs/public/videos/hero.mp4). GitHub only plays videos uploaded as attachments:
      drag hero.mp4 into the README editor on GitHub and put the URL it gives on its own line here. -->
 
 ## Documentation
@@ -36,7 +36,7 @@ Everything is in the docs at **[mariovagomarzal.github.io/Looper](https://mariov
 - [The radial wheel](https://mariovagomarzal.github.io/Looper/docs/guides/wheel/): Looper's signature feature, step by
   step.
 
-The docs are built from [site/](./site). To work on Looper itself, see
+The docs are built from [docs/](./docs). To work on Looper itself, see
 [Development](https://mariovagomarzal.github.io/Looper/docs/development/).
 
 ## Credits

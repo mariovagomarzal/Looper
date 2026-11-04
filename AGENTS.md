@@ -2,7 +2,7 @@
 
 Looper is a tiling window manager for macOS, forked from AeroSpace: a single SwiftPM package with the `Looper.app`
 server (`Sources/AppBundle`), the `looper` CLI (`Sources/Cli`) and shared code (`Sources/Common`).
-Read `docs/dev/architecture.md` before larger changes.
+Read the architecture page (`docs/src/content/docs/docs/architecture.md`) before larger changes.
 
 ## Commands
 
@@ -12,9 +12,9 @@ Run everything through `devenv shell -- <command>`. Never build the app with Nix
 - `just check`: regenerated sources, strict build (warnings are errors), tests and lint. Must pass before a commit.
 - `just test`, `swift test --filter <TestClass>`: tests.
 - `just run`: builds and relaunches the debug app (`Looper-Debug`, logs under `com.mariovagomarzal.looper.debug`).
-- `just generate`: after editing the command pages (`site/src/content/docs/docs/commands/*.md`), which generate the
+- `just generate`: after editing the command pages (`docs/src/content/docs/docs/commands/*.md`), which generate the
   CLI help.
-- `just site`: the website and docs (Astro Starlight in `site/`). `cd site && pnpm build` checks every internal link.
+- `just docs`: the website and docs (Astro Starlight in `docs/`). `cd docs && pnpm build` checks every internal link.
 
 ## Rules
 

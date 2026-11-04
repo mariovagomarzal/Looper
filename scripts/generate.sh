@@ -16,7 +16,7 @@ while test $# -gt 0; do
     esac
 done
 
-docs=site/src/content/docs/docs/commands
+docs=docs/src/content/docs/docs/commands
 
 # The lines of the 'text' block under the Synopsis heading of a command page
 synopsis() {

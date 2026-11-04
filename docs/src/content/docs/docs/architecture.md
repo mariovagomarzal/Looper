@@ -1,12 +1,11 @@
-# Architecture
-
-## Definitions
-
-**SwiftPM.** Swift Package Manager and build tool, i.e. the `swift` CLI.
+---
+title: Architecture
+description: How Looper's code is organized, subsystem by subsystem.
+---
 
 ## Repository layout
 
-- `Package.swift`. The whole project is a single SwiftPM package; there is no Xcode project.
+- `Package.swift`. The whole project is a single SwiftPM (Swift Package Manager) package; there is no Xcode project.
 - `Sources/AppBundle/`. The `Looper.app` server: window management, commands, config, UI.
 - `Sources/LooperApp/`. Tiny executable target with the SwiftUI `@main` entry point of the app.
 - `Sources/Cli/`. The `looper` CLI client.
@@ -14,17 +13,16 @@
 - `Sources/Macros/`, `Sources/PrivateApi/`. Swift macros and the private `_AXUIElementGetWindow` bridge.
 - `Tests/AppBundleTests/`. Unit tests. `Fixtures/axDumps/` holds recorded accessibility dumps of real windows.
 - `resources/`. App resources: asset catalog and `default-config.toml`.
-- `site/`. The website and docs (Astro Starlight). The command pages in `site/src/content/docs/docs/commands/` are also
-  the source of the CLI help: `scripts/generate.sh` turns their synopses and descriptions into Swift.
-- `docs/config-examples/`. Example configurations.
+- `docs/`. The website and these docs (Astro Starlight). The command pages in `docs/src/content/docs/docs/commands/`
+  are also the source of the CLI help: `scripts/generate.sh` turns their synopses and descriptions into Swift.
 - `scripts/`. Build scripts (`generate.sh`, `bundle.sh`, `release.sh`) and the shell completion grammar.
 
 SwiftPM can't produce app bundles, so `scripts/bundle.sh` builds the `LooperApp` executable with SwiftPM and
 assembles `Looper.app` around it: `Info.plist`, compiled assets (`actool`) and code signature.
 
-## client/server interaction
+## Client and server
 
-`looper` CLI binary is client. `Looper.app` is server. Client and server talk to each other via predefined UNIX file.
+The `looper` CLI is the client and `Looper.app` the server. They talk through a UNIX socket.
 
 Each time you run a CLI command:
 1. Args are parsed by the client, args parsing errors are reported if any. Help is shown if `-h`/`--help` is passed.
@@ -33,23 +31,19 @@ Each time you run a CLI command:
 1. Server returns stdout, stderr, and exit code to the client
 1. Client shows stdout, stderr, and ends the process with the requested exit code
 
-## Commands subsystem
+## Commands
 
-todo
+`Sources/AppBundle/command/` and `Sources/Common/cmdArgs/`.
 
-Sources/AppBundle/command/
-Sources/Common/cmdArgs/
+A new command needs:
 
-Command checklist:
-- [ ] A page in `site/src/content/docs/docs/commands/`, then `just generate`
+- [ ] A page in `docs/src/content/docs/docs/commands/`, then `just generate`
 - [ ] Do `--window-id` and/or `--workspace` flags make sense for the command?
 - [ ] Shell completion `scripts/completion/grammar.bnf`
 
-## TOML Config parse subsystem
+## Config
 
-todo
-
-Sources/AppBundle/config/
+`Sources/AppBundle/config/`.
 
 ### Hotkeys
 
@@ -67,7 +61,7 @@ bindings (`lalt-h`) win over generic ones (`alt-h`).
 
 ### Trackpad gestures
 
-Sources/AppBundle/gestures/
+`Sources/AppBundle/gestures/`.
 
 Public APIs only deliver gestures to the app under the pointer, so gestures are read from the private
 MultitouchSupport framework (`Multitouch.swift`), resolved at runtime like SkyLight. It reports every finger of every
@@ -79,9 +73,9 @@ frame on its own thread; Looper reads it only while some mode has a `gesture` ta
 - Modifiers come from the hotkey tap, which tracks the pressed modifiers on every flags change.
 - macOS gestures can't be blocked, so gestures that macOS also uses run both actions.
 
-## Wheel subsystem
+## The wheel
 
-Sources/AppBundle/wheel/
+`Sources/AppBundle/wheel/`.
 
 - `WheelConfig.swift`: `wheel.*` config. Profiles are resolved at parse time: every profile starts from the style of
   `default`, and `extends` also inherits the actions of another profile. Actions are bound per (slot, finish) pair.
@@ -109,11 +103,11 @@ Sources/AppBundle/wheel/
   `WheelSimulationTest` checks that the mirror matches the real layout and that simulations leave no trace.
 - Finished gestures are logged in the `wheel` category of the os log.
 
-## Tree Model subsystem
+## The tree
 
-Sources/AppBundle/tree/
+`Sources/AppBundle/tree/`.
 
-```
+```text
 Monitor
 └── WorkspacesContainer (one per native macOS Space seen on the monitor)
     └── Workspace (names are unique only inside their container)
@@ -144,9 +138,3 @@ Native Spaces are read, never driven (`Sources/AppBundle/model/NativeSpaces.swif
 - Containers of removed Spaces are garbage collected once their windows have moved elsewhere.
 - Windows of hidden Spaces are invisible (`WindowLifeStatus.invisible`). A window moved into a hidden Space takes
   its weight from those invisible siblings, see `TreeNode.bind`.
-
-## Layout subsystem
-
-todo
-
-Sources/AppBundle/layout/
