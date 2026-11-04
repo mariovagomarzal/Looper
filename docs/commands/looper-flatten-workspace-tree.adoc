@@ -9,7 +9,7 @@ include::util/man-attributes.adoc[]
 == Synopsis
 [verse]
 // tag::synopsis[]
-looper flatten-workspace-tree [-h|--help] [--workspace <workspace>]
+looper flatten-workspace-tree [-h|--help] [--workspace <workspace>] [--monitor <monitor>]
 
 // end::synopsis[]
 
@@ -28,6 +28,9 @@ include::./util/conditional-options-header.adoc[]
 
 --workspace <workspace>::
 include::./util/workspace-flag-desc.adoc[]
+
+--monitor <monitor>::
+include::./util/monitor-flag-desc.adoc[]
 
 // end::body[]
 

@@ -6,7 +6,7 @@ public struct ListMonitorsCmdArgs: CmdArgs {
         help: list_monitors_help_generated,
         flags: [
             "--focused": boolFlag(\.focused),
-            "--mouse": boolFlag(\.mouse),
+            "--pointer": boolFlag(\.pointer),
 
             // Formatting flags
             "--format": formatParser(\._format, for: .monitor),
@@ -21,7 +21,7 @@ public struct ListMonitorsCmdArgs: CmdArgs {
     )
 
     public var focused: Bool?
-    public var mouse: Bool?
+    public var pointer: Bool?
     public var _format: [InterToken<InterVar>] = []
     public var outputOnlyCount: Bool = false
     public var json: Bool = false

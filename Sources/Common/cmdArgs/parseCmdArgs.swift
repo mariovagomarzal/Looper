@@ -26,6 +26,8 @@ public struct CmdArgsCommonState: Withable, Equatable, Sendable {
     let rawArgsForStrRepr: EquatableNoop<StrArrSlice>
     var windowId: WindowTarget? = nil
     var workspaceName: WorkspaceName? = nil
+    /// '--monitor': the monitor whose workspaces '--workspace' refers to. Without '--workspace', its visible workspace
+    var monitor: MonitorTarget? = nil
     public var explicitStdinFlag: Bool? = nil
 
     public init(_ raw: StrArrSlice) { rawArgsForStrRepr = .init(raw) }
@@ -42,6 +44,11 @@ extension CmdArgs {
     public var workspaceName: WorkspaceName? {
         get { commonState.workspaceName }
         set(value) { commonState.workspaceName = value }
+    }
+
+    public var monitor: MonitorTarget? {
+        get { commonState.monitor }
+        set(value) { commonState.monitor = value }
     }
 
     public var failExitCode: Int32 { ExitCodeType.fail.rawValue }

@@ -85,7 +85,10 @@ Sources/AppBundle/wheel/
   exactly as it was: same node objects, order, weights, layouts, MRU orders, focus and visible workspaces. Everything
   is synchronous on the main actor, so nothing else can observe the tree in between. That's why commands expose
   synchronous entry points (`MoveCommand.apply`, `SwapCommand.apply`, `LayoutCommand.applySynchronously`). A window
-  that floats keeps its position and gets its last floating size, like `layout floating` does.
+  that floats keeps its position and gets its last floating size, like `layout floating` does. The snapshot covers
+  every workspace of the active native Space of each monitor, because commands may move windows and whole workspaces
+  between monitors and change which workspace is visible; workspaces and containers created meanwhile are removed.
+  Taking it must not create anything, so it avoids accessors like `rootTilingContainer` that create what is missing.
   `WheelSimulationTest` checks that the mirror matches the real layout and that simulations leave no trace.
 - Finished gestures are logged in the `wheel` category of the os log.
 
@@ -106,6 +109,10 @@ Monitor
 
 Every (monitor, native Space) pair owns an independent set of workspaces. Workspace names are resolved in the
 container of the focused workspace, so `workspace 2` means "workspace 2 of the focused monitor and its active Space".
+`--monitor` (on `workspace`, `move-node-to-workspace` and the commands with `--workspace`) resolves them in the active
+Space of another monitor instead (`MonitorTarget.resolveWorkspacesContainer`). `move-workspace-to-monitor` and
+`swap-workspace-with-monitor` move the contents of workspaces (`WorkspaceContents`), never the workspaces themselves,
+since every monitor has its own workspaces with the same names.
 
 Native Spaces are read, never driven (`Sources/AppBundle/model/NativeSpaces.swift`):
 - Private SkyLight functions, resolved at runtime with `dlsym`, report the active Space of every display and the

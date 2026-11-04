@@ -33,6 +33,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case moveMouse = "move-mouse"
     case moveNodeToMonitor = "move-node-to-monitor"
     case moveNodeToWorkspace = "move-node-to-workspace"
+    case moveWorkspaceToMonitor = "move-workspace-to-monitor"
     case place
     case reloadConfig = "reload-config"
     case resize
@@ -40,6 +41,7 @@ public enum CmdKind: String, CaseIterable, Equatable, Sendable {
     case split
     case subscribe
     case swap
+    case swapWorkspaceWithMonitor = "swap-workspace-with-monitor"
     case test
     case testNot = "test-not"
     case triggerBinding = "trigger-binding"
@@ -118,6 +120,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseMoveNodeToMonitorCmdArgs)
             case .moveNodeToWorkspace:
                 result[kind.rawValue] = SubCommandParser(parseMoveNodeToWorkspaceCmdArgs)
+            case .moveWorkspaceToMonitor:
+                result[kind.rawValue] = SubCommandParser(parseMoveWorkspaceToMonitorCmdArgs)
             case .place:
                 result[kind.rawValue] = SubCommandParser(PlaceCmdArgs.init)
             case .reloadConfig:
@@ -132,6 +136,8 @@ func initSubcommands() -> [String: any SubCommandParserProtocol] {
                 result[kind.rawValue] = SubCommandParser(parseSubscribeCmdArgs)
             case .swap:
                 result[kind.rawValue] = SubCommandParser(parseSwapCmdArgs)
+            case .swapWorkspaceWithMonitor:
+                result[kind.rawValue] = SubCommandParser(parseSwapWorkspaceWithMonitorCmdArgs)
             case .test:
                 result[kind.rawValue] = SubCommandParser(parseTestCmdArgs)
             case .testNot:

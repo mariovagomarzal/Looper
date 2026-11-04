@@ -8,6 +8,7 @@ public struct WorkspaceCmdArgs: CmdArgs {
             "--auto-back-and-forth": ArgParser(\._autoBackAndForth, constSubArgParserFun(true)),
             "--wrap-around": ArgParser(\._wrapAround, constSubArgParserFun(true)),
             "--fail-if-noop": trueBoolFlag(\.failIfNoop),
+            "--monitor": monitorSubArgParser(\.commonState.monitor),
 
             "--stdin": ArgParser(\.commonState.explicitStdinFlag, constSubArgParserFun(true)),
             "--no-stdin": ArgParser(\.commonState.explicitStdinFlag, constSubArgParserFun(false)),

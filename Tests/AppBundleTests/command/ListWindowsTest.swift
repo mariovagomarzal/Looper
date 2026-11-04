@@ -16,15 +16,15 @@ final class ListWindowsTest: XCTestCase {
         assertEquals(parseCommand("list-windows --all --focused").errorOrNil, "ERROR: Conflicting flags: --all, --focused")
         assertEquals(parseCommand("list-windows --all --count --format %{window-title}").errorOrNil, "ERROR: Conflicting flags: --count, --format")
         assertEquals(
-            parseCommand("list-windows --all --focused --monitor mouse").errorOrNil,
+            parseCommand("list-windows --all --focused --monitor pointer").errorOrNil,
             "ERROR: Conflicting flags: --all, --focused")
         assertEquals(
-            parseCommand("list-windows --all --focused --monitor mouse --workspace focused").errorOrNil,
+            parseCommand("list-windows --all --focused --monitor pointer --workspace focused").errorOrNil,
             "ERROR: Conflicting flags: --all, --focused, --workspace")
         assertEquals(
             parseCommand("list-windows --all --workspace focused").errorOrNil,
             "ERROR: Conflicting flags: --all, --workspace")
-        assertNil(parseCommand("list-windows --monitor mouse").errorOrNil)
+        assertNil(parseCommand("list-windows --monitor pointer").errorOrNil)
 
         // --json
         assertEquals(parseCommand("list-windows --all --count --json").errorOrNil, "ERROR: Conflicting flags: --count, --json")

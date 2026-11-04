@@ -2,7 +2,7 @@
 // TO REGENERATE THE FILE RUN scripts/generate.sh
 
 let balance_sizes_help_generated = """
-    USAGE: balance-sizes [-h|--help] [--workspace <workspace>]
+    USAGE: balance-sizes [-h|--help] [--workspace <workspace>] [--monitor <monitor>]
     """
 let close_all_windows_but_current_help_generated = """
     USAGE: close-all-windows-but-current [-h|--help] [--quit-if-last-window]
@@ -37,7 +37,7 @@ let false_help_generated = """
     USAGE: false [-h|--help]
     """
 let flatten_workspace_tree_help_generated = """
-    USAGE: flatten-workspace-tree [-h|--help] [--workspace <workspace>]
+    USAGE: flatten-workspace-tree [-h|--help] [--workspace <workspace>] [--monitor <monitor>]
     """
 let focus_back_and_forth_help_generated = """
     USAGE: focus-back-and-forth [-h|--help]
@@ -45,7 +45,7 @@ let focus_back_and_forth_help_generated = """
 let focus_monitor_help_generated = """
     USAGE: focus-monitor [-h|--help] [--wrap-around] (left|down|up|right)
        OR: focus-monitor [-h|--help] [--wrap-around] (next|prev)
-       OR: focus-monitor [-h|--help] [--] <monitor-pattern>...
+       OR: focus-monitor [-h|--help] [--] (focused|pointer|wheel|<monitor-pattern>...)
     """
 let focus_help_generated = """
     USAGE: focus [-h|--help] [--ignore-floating] [--wrap-around]
@@ -67,7 +67,7 @@ let join_with_help_generated = """
     USAGE: join-with [-h|--help] [--window-id <window-id>] (left|down|up|right)
     """
 let layout_help_generated = """
-    USAGE: layout [-h|--help] [--window-id <window-id>|--workspace <workspace>]
+    USAGE: layout [-h|--help] [--window-id <window-id>|--workspace <workspace>] [--monitor <monitor>]
                   [--root] [--fail-if-noop]
                   (<target-layout>)...
        OR: layout [-h|--help] --for-next-detected-window (tiling|floating)
@@ -82,7 +82,7 @@ let list_modes_help_generated = """
     USAGE: list-modes [-h|--help] [--current] [--count] [--json]
     """
 let list_monitors_help_generated = """
-    USAGE: list-monitors [-h|--help] [--focused [no]] [--mouse [no]] [--format <output-format>] [--count] [--json]
+    USAGE: list-monitors [-h|--help] [--focused [no]] [--pointer [no]] [--format <output-format>] [--count] [--json]
     """
 let list_windows_help_generated = """
     USAGE: list-windows [-h|--help] (--workspace <workspace>...|--monitor <monitor>...)
@@ -115,14 +115,19 @@ let move_node_to_monitor_help_generated = """
     USAGE: move-node-to-monitor [-h|--help] [--window-id <window-id>] [--focus-follows-window]
                                 [--wrap-around] (left|down|up|right|next|prev)
        OR: move-node-to-monitor [-h|--help] [--window-id <window-id>] [--focus-follows-window]
-                                [--fail-if-noop] [--] <monitor-pattern>...
+                                [--fail-if-noop] [--] (focused|pointer|wheel|<monitor-pattern>...)
     """
 let move_node_to_workspace_help_generated = """
     USAGE: move-node-to-workspace [-h|--help] [--focus-follows-window] [--wrap-around]
-                                  [--stdin|--no-stdin]
+                                  [--stdin|--no-stdin] [--monitor <monitor>]
                                   (next|prev)
        OR: move-node-to-workspace [-h|--help] [--focus-follows-window] [--fail-if-noop]
-                                  [--window-id <window-id>] [--] <workspace-name>
+                                  [--window-id <window-id>] [--monitor <monitor>] [--] <workspace-name>
+    """
+let move_workspace_to_monitor_help_generated = """
+    USAGE: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around]
+                                     (left|down|up|right|next|prev)
+       OR: move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--] (focused|pointer|wheel|<monitor-pattern>...)
     """
 let move_help_generated = """
     USAGE: move [-h|--help] [--window-id <window-id>] [--boundaries <boundary>]
@@ -148,6 +153,10 @@ let split_help_generated = """
     """
 let subscribe_help_generated = """
     USAGE: subscribe [-h|--help] [--all] [--no-send-initial] [<event>...]
+    """
+let swap_workspace_with_monitor_help_generated = """
+    USAGE: swap-workspace-with-monitor [-h|--help] [--wrap-around] (left|down|up|right|next|prev)
+       OR: swap-workspace-with-monitor [-h|--help] [--] (focused|pointer|wheel|<monitor-pattern>...)
     """
 let swap_help_generated = """
     USAGE: swap [-h|--help] [--window-id <window-id>] [--swap-focus]
@@ -180,6 +189,6 @@ let workspace_back_and_forth_help_generated = """
     USAGE: workspace-back-and-forth [-h|--help]
     """
 let workspace_help_generated = """
-    USAGE: workspace [-h|--help] [--auto-back-and-forth] [--fail-if-noop] [--] <workspace-name>
-       OR: workspace [-h|--help] [--wrap-around] [--stdin|--no-stdin] (next|prev)
+    USAGE: workspace [-h|--help] [--monitor <monitor>] [--auto-back-and-forth] [--fail-if-noop] [--] <workspace-name>
+       OR: workspace [-h|--help] [--monitor <monitor>] [--wrap-around] [--stdin|--no-stdin] (next|prev)
     """

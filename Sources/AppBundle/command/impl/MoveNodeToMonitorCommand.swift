@@ -13,7 +13,7 @@ struct MoveNodeToMonitorCommand: Command {
         guard let currentMonitor = window.nodeMonitorInfo else {
             return .fail(io.err(windowIsntPartOfTree(window)))
         }
-        switch args.target.val.resolve(currentMonitor, wrapAround: args.wrapAround) {
+        switch args.target.val.resolve(currentMonitor, wrapAround: args.wrapAround, env) {
             case .success(let targetMonitor):
                 let targetWs = targetMonitor.visibleWorkspace
                 let index = true == args.target.val.directionOrNil

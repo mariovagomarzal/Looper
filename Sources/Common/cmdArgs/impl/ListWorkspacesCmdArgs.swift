@@ -76,7 +76,7 @@ func parseListWorkspacesCmdArgs(_ args: StrArrSlice) -> ParsedCmd<ListWorkspaces
 
 func parseMonitorIds(input: SubArgParserInput) -> ParsedCliArgs<[MonitorId]> {
     let args = input.nonFlagArgs()
-    let possibleValues = "\(onitor) possible values: (<monitor-id>|focused|mouse|all)"
+    let possibleValues = "\(onitor) possible values: (<monitor-id>|focused|pointer|all)"
     if args.isEmpty {
         return .fail("\(_monitors) is mandatory. \(possibleValues)", advanceBy: args.count)
     }
@@ -85,7 +85,7 @@ func parseMonitorIds(input: SubArgParserInput) -> ParsedCliArgs<[MonitorId]> {
     for monitor in args {
         switch Int.init(monitor) {
             case let unwrapped?: monitors.append(.index(unwrapped - 1))
-            case _ where monitor == "mouse": monitors.append(.mouse)
+            case _ where monitor == "pointer": monitors.append(.pointer)
             case _ where monitor == "all": monitors.append(.all)
             case _ where monitor == "focused": monitors.append(.focused)
             default: return .fail("Can't parse monitor ID '\(monitor)'. \(possibleValues)", advanceBy: i + 1)
@@ -98,6 +98,6 @@ func parseMonitorIds(input: SubArgParserInput) -> ParsedCliArgs<[MonitorId]> {
 public enum MonitorId: Equatable, Sendable {
     case focused
     case all
-    case mouse
+    case pointer
     case index(Int)
 }

@@ -7,6 +7,7 @@ struct WorkspaceCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = false
 
     func run(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode { // todo refactor
+        // With --monitor, the target is the visible workspace of that monitor, and names refer to its workspaces
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
         let focusedWs = target.workspace
         let workspaceName: String
@@ -23,11 +24,12 @@ struct WorkspaceCommand: Command {
                 workspaceName = workspace.name
             case .direct(let name):
                 workspaceName = name.raw
-                if args.autoBackAndForth && focusedWs.name == workspaceName {
+                if args.autoBackAndForth && focusedWs.name == workspaceName && focusedWs == globalFocus.workspace {
                     return WorkspaceBackAndForthCommand(args: WorkspaceBackAndForthCmdArgs(rawArgs: [])).run(env, io)
                 }
         }
-        if focusedWs.name == workspaceName {
+        // The workspace of another monitor may already be visible there, but it still has to get the focus
+        if focusedWs.name == workspaceName && focusedWs == globalFocus.workspace {
             return switch args.failIfNoop {
                 case true: .fail
                 case false:

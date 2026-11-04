@@ -23,6 +23,6 @@ final class MoveNodeToMonitorCommandTest: XCTestCase {
             "move-node-to-monitor --fail-if-noop -- next",
             MoveNodeToMonitorCmdArgs(target: .patterns([.pattern("next")!])).with(\.failIfNoop, true),
         )
-        assertEquals(parseCommand("move-node-to-monitor --").errorOrNil, "ERROR: Argument \'(left|down|up|right|next|prev|<monitor-pattern>)\' is mandatory")
+        assertEquals(parseCommand("move-node-to-monitor --").errorOrNil, "ERROR: Argument \'(left|down|up|right|next|prev|focused|pointer|wheel|<monitor-pattern>)\' is mandatory")
     }
 }

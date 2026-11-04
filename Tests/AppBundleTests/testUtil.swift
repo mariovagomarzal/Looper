@@ -26,6 +26,8 @@ func setUpWorkspacesForTests() {
 
     nativeSpacesForTests = nil
     refreshNativeSpaces()
+    unsafe extraMonitorInfosForTests = []
+    gcMonitors()
 
     for workspace in Workspace.all {
         for child in workspace.children {

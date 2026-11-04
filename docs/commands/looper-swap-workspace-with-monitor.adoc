@@ -1,0 +1,45 @@
+= looper-swap-workspace-with-monitor(1)
+include::util/man-attributes.adoc[]
+:manname: looper-swap-workspace-with-monitor
+// tag::purpose[]
+:manpurpose: Swap the windows of the focused workspace with the visible workspace of another monitor
+// end::purpose[]
+
+// =========================================================== Synopsis
+== Synopsis
+[verse]
+// tag::synopsis[]
+looper swap-workspace-with-monitor [-h|--help] [--wrap-around] (left|down|up|right|next|prev)
+looper swap-workspace-with-monitor [-h|--help] [--] (focused|pointer|wheel|<monitor-pattern>...)
+
+// end::synopsis[]
+
+// =========================================================== Description
+== Description
+
+// tag::body[]
+{manpurpose}
+
+What is shown on the two monitors is exchanged: everything each workspace holds (its tiling tree with its layout,
+floating windows, and windows in macOS native fullscreen or of hidden apps) moves to the other one.
+Each monitor keeps its workspaces and their names.
+The focus follows the focused window to the other monitor.
+
+The sizes of the tiling trees are scaled to their new monitor.
+Floating windows keep their position relative to the monitor.
+
+// =========================================================== Options
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+--wrap-around:: Make it possible to wrap around the movement
+
+// =========================================================== Arguments
+include::util/conditional-arguments-header.adoc[]
+
+include::util/monitor-target-desc.adoc[]
+
+// end::body[]
+
+// =========================================================== Footer
+include::util/man-footer.adoc[]

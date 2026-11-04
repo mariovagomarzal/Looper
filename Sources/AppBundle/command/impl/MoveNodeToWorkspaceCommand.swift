@@ -8,22 +8,32 @@ struct MoveNodeToWorkspaceCommand: Command {
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
         guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
         let subjectWs = window.nodeWorkspace
+        let container: WorkspacesContainer
+        if let monitor = args.targetMonitor {
+            let windowMonitor = subjectWs?.workspaceMonitorInfo ?? globalFocus.workspace.workspaceMonitorInfo
+            guard let it = monitor.resolveWorkspacesContainer(relativeTo: windowMonitor, env, io) else { return .fail }
+            container = it
+        } else {
+            // The workspaces of the window's monitor and native Space
+            container = subjectWs?.workspacesContainer ?? focusedWorkspacesContainer
+        }
         let targetWorkspace: Workspace
         switch args.target.val {
             case .relative(let nextPrev):
                 guard let subjectWs else { return .fail(io.err("Window \(window.windowId) doesn't belong to any workspace")) }
+                // On another monitor, next and prev are relative to its visible workspace
+                let current = args.targetMonitor == nil ? subjectWs : container.visibleWorkspace
                 let ws = getNextPrevWorkspace(
-                    current: subjectWs,
+                    current: current,
                     isNext: nextPrev == .next,
                     wrapAround: args.wrapAround,
                     stdin: args.useStdin ? io.readStdin() : nil,
-                    target: target,
+                    target: args.targetMonitor == nil ? target : current.toLiveFocus(),
                 )
                 guard let ws = ws.getOrNil(appendErrorTo: &io.stderr) else { return .fail }
                 targetWorkspace = ws
             case .direct(let name):
-                // Resolved among the workspaces of the window's monitor and native Space
-                targetWorkspace = Workspace.get(byName: name.raw, in: subjectWs?.workspacesContainer ?? focusedWorkspacesContainer)
+                targetWorkspace = Workspace.get(byName: name.raw, in: container)
         }
         return moveWindowToWorkspace(window, targetWorkspace, io, focusFollowsWindow: args.focusFollowsWindow, failIfNoop: args.failIfNoop)
     }

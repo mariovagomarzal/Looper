@@ -1,0 +1,52 @@
+= looper-move-workspace-to-monitor(1)
+include::util/man-attributes.adoc[]
+:manname: looper-move-workspace-to-monitor
+// tag::purpose[]
+:manpurpose: Move the windows of a workspace to the workspace of the same name on another monitor
+// end::purpose[]
+
+// =========================================================== Synopsis
+== Synopsis
+[verse]
+// tag::synopsis[]
+looper move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--wrap-around]
+                                    (left|down|up|right|next|prev)
+looper move-workspace-to-monitor [-h|--help] [--workspace <workspace>] [--] (focused|pointer|wheel|<monitor-pattern>...)
+
+// end::synopsis[]
+
+// =========================================================== Description
+== Description
+
+// tag::body[]
+{manpurpose}
+
+Workspace names belong to a monitor, so every monitor has its own workspace '3'.
+This command moves everything the workspace holds (its tiling tree with its layout, floating windows, and windows in
+macOS native fullscreen or of hidden apps) into the workspace with the same name on the target monitor.
+That workspace becomes visible and focused.
+
+The sizes of the tiling tree are scaled to the target monitor.
+Floating windows keep their position relative to the monitor.
+If the target workspace already has windows, they stay, and the moved tiling tree joins them as a nested container.
+
+// =========================================================== Options
+include::./util/conditional-options-header.adoc[]
+
+-h, --help:: Print help
+
+--workspace <workspace>::
+The workspace to move, among the workspaces of the focused monitor.
+The default is the focused workspace.
+
+--wrap-around:: Make it possible to wrap around the movement
+
+// =========================================================== Arguments
+include::util/conditional-arguments-header.adoc[]
+
+include::util/monitor-target-desc.adoc[]
+
+// end::body[]
+
+// =========================================================== Footer
+include::util/man-footer.adoc[]

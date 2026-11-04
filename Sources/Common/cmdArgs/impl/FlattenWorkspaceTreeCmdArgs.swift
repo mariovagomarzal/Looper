@@ -6,6 +6,7 @@ public struct FlattenWorkspaceTreeCmdArgs: CmdArgs {
         help: flatten_workspace_tree_help_generated,
         flags: [
             "--workspace": workspaceSubArgParser(),
+            "--monitor": monitorSubArgParser(\.commonState.monitor),
         ],
         posArgs: [],
     )

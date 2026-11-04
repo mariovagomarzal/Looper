@@ -10,10 +10,10 @@ include::util/man-attributes.adoc[]
 [verse]
 // tag::synopsis[]
 looper move-node-to-workspace [-h|--help] [--focus-follows-window] [--wrap-around]
-                                 [--stdin|--no-stdin]
+                                 [--stdin|--no-stdin] [--monitor <monitor>]
                                  (next|prev)
 looper move-node-to-workspace [-h|--help] [--focus-follows-window] [--fail-if-noop]
-                                 [--window-id <window-id>] [--] <workspace-name>
+                                 [--window-id <window-id>] [--monitor <monitor>] [--] <workspace-name>
 
 // end::synopsis[]
 
@@ -29,6 +29,15 @@ looper move-node-to-workspace [-h|--help] [--focus-follows-window] [--fail-if-no
 include::./util/conditional-options-header.adoc[]
 
 -h, --help:: Print help
+
+--monitor <monitor>::
+Move the window to a workspace of another monitor.
+`<workspace-name>`, `next` and `prev` refer to the workspaces of that monitor, `next` and `prev` relative to its
+visible workspace.
+`<monitor>` possible values: `(left|down|up|right|next|prev|focused|pointer|wheel|<monitor-pattern>)`.
+Directions, `next` and `prev` are relative to the monitor of the window.
+`wheel` is the monitor that was under the mouse pointer when the wheel opened, and is only valid in wheel actions.
+See `looper-focus-monitor` for monitor patterns.
 --wrap-around:: Make it possible to jump between first and last workspaces using (next|prev)
 --fail-if-noop:: Exit with non-zero code if move window to workspace it already belongs to
 

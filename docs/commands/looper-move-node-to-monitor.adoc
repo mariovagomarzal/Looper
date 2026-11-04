@@ -12,7 +12,7 @@ include::util/man-attributes.adoc[]
 looper move-node-to-monitor [-h|--help] [--window-id <window-id>] [--focus-follows-window]
                                [--wrap-around] (left|down|up|right|next|prev)
 looper move-node-to-monitor [-h|--help] [--window-id <window-id>] [--focus-follows-window]
-                               [--fail-if-noop] [--] <monitor-pattern>...
+                               [--fail-if-noop] [--] (focused|pointer|wheel|<monitor-pattern>...)
 
 // end::synopsis[]
 
@@ -41,17 +41,7 @@ include::./util/window-id-flag-desc.adoc[]
 // =========================================================== Arguments
 include::util/conditional-arguments-header.adoc[]
 
-(left|down|up|right)::
-Move window to monitor in direction relative to the focused monitor
-
-(next|prev)::
-Move window to next|prev monitor in order they appear in tray icon
-
-<monitor-pattern>...::
-Find the first matching monitor and move the window there.
-Multiple monitor patterns is useful for different monitor configurations.
-A monitor pattern is a 1-based sequence number of the monitor (from left to right), `main`, `secondary` (the
-non-main monitor when there are exactly two) or a case-insensitive regex substring of the monitor name
+include::util/monitor-target-desc.adoc[]
 
 // end::body[]
 

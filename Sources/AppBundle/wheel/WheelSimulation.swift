@@ -9,24 +9,28 @@ import Common
 @MainActor func simulateWheelPreview(_ action: Shell<any Command>, _ env: CmdEnv, _ mode: WheelPreviewMode) -> [WheelPreviewItem]? {
     guard mode != .off, let first = action.flatten().first, first.isSimulatable else { return nil }
     let io = CmdIoImpl(stdin: .emptyStdin)
-    let workspaces = Monitor.all.map(\.activeWorkspacesContainer.visibleWorkspace)
-    // The snapshot only covers the visible workspaces
-    guard let targetWindow = first.args.resolveTargetOrReportError(env, io)?.windowOrNil,
-          let targetWorkspace = targetWindow.nodeWorkspace, workspaces.contains(targetWorkspace)
-    else { return nil }
+    // Commands may move windows between the workspaces of the active native Spaces of every monitor, and change which
+    // one is visible. The snapshot covers all of them
+    let containers = Monitor.all.map(\.activeWorkspacesContainer)
+    let visibleBefore = containers.map(\.visibleWorkspace)
+    let isCovered: (Workspace) -> Bool = { workspace in containers.contains { $0 === workspace.workspacesContainer } }
+    // Commands that move a whole workspace act on every window of it, and may have no window at all
+    let movesWorkspaces = first is MoveWorkspaceToMonitorCommand || first is SwapWorkspaceWithMonitorCommand
+    let targetWindow = first.args.resolveTargetOrReportError(env, io)?.windowOrNil
+    guard movesWorkspaces || targetWindow?.nodeWorkspace.map(isCovered) == true else { return nil }
 
-    let before = layoutFrames(workspaces)
-    let wasFloating = Set(workspaces.flatMap(\.floatingWindows).map(\.windowId))
-    let snapshot = TreeSnapshot(workspaces)
+    let before = layoutFrames(visibleBefore)
+    let wasFloating = Set(visibleBefore.flatMap(\.floatingWindows).map(\.windowId))
+    let snapshot = TreeSnapshot(containers)
     var isFloating = wasFloating
     let after: [OpaqueWindowId: Rect]? = withGlobalFocusRestored {
-        // Commands that touch other workspaces can't be simulated
-        let simulated = simulate(action, env, io) { workspaces.contains($0) }
-        guard simulated != nil else { return nil }
-        var frames = layoutFrames(workspaces)
-        isFloating = Set(workspaces.flatMap(\.floatingWindows).map(\.windowId))
+        guard simulate(action, env, io, isCovered) != nil else { return nil }
+        let visibleAfter = containers.map(\.visibleWorkspace)
+        var frames = layoutFrames(visibleAfter)
+        let floating = visibleAfter.flatMap(\.floatingWindows)
+        isFloating = Set(floating.map(\.windowId))
         // A tiling window that floats keeps its position and gets back its last floating size
-        for window in workspaces.flatMap(\.floatingWindows) where !wasFloating.contains(window.windowId) {
+        for window in floating where !wasFloating.contains(window.windowId) {
             guard let tile = before[window.windowId] else { continue }
             frames[window.windowId] = Rect(topLeftX: tile.minX, topLeftY: tile.minY, width: window.lastFloatingSize?.width ?? tile.width, height: window.lastFloatingSize?.height ?? tile.height)
         }
@@ -37,6 +41,13 @@ import Common
 
     let changed = after.keys.filter { id in before[id].map { !$0.isApproximatelyEqual(to: after[id]!) } ?? true }
     var items: [WheelPreviewItem] = []
+    if movesWorkspaces {
+        for id in changed.sorted(by: { $0.rawId < $1.rawId }) {
+            items.append(WheelPreviewItem(windowId: id, rect: after[id]!, kind: .frame))
+        }
+        return items
+    }
+    guard let targetWindow else { return items }
     let switchedFloating = wasFloating.contains(targetWindow.windowId) != isFloating.contains(targetWindow.windowId)
     if let frame = after[targetWindow.windowId], changed.contains(targetWindow.windowId) || switchedFloating {
         items.append(WheelPreviewItem(windowId: targetWindow.windowId, rect: frame, kind: .frame))
@@ -93,7 +104,9 @@ extension Command {
     fileprivate var isSimulatable: Bool {
         switch self {
             case is MoveCommand, is SwapCommand, is LayoutCommand, is ResizeCommand, is BalanceSizesCommand,
-                 is FlattenWorkspaceTreeCommand, is JoinWithCommand, is SplitCommand: true
+                 is FlattenWorkspaceTreeCommand, is JoinWithCommand, is SplitCommand,
+                 is MoveNodeToMonitorCommand, is MoveNodeToWorkspaceCommand,
+                 is MoveWorkspaceToMonitorCommand, is SwapWorkspaceWithMonitorCommand: true
             default: false
         }
     }
@@ -110,6 +123,10 @@ extension Command {
         case let it as FlattenWorkspaceTreeCommand: it.run(env, io)
         case let it as JoinWithCommand: it.run(env, io)
         case let it as SplitCommand: it.run(env, io)
+        case let it as MoveNodeToMonitorCommand: it.run(env, io)
+        case let it as MoveNodeToWorkspaceCommand: it.run(env, io)
+        case let it as MoveWorkspaceToMonitorCommand: it.run(env, io)
+        case let it as SwapWorkspaceWithMonitorCommand: it.run(env, io)
         default: nil
     }
     return exitCode.map { $0.rawValue == 0 }
@@ -234,6 +251,11 @@ extension Rect {
     }
 
     private let workspaces: [Workspace]
+    /// The workspaces of each container and the children of each workspace, to remove what is created meanwhile
+    private let workspaceLists: [(container: WorkspacesContainer, workspaces: [Workspace])]
+    private let workspaceChildren: [(workspace: Workspace, children: [TreeNode])]
+    /// Floating, macOS fullscreen and hidden apps windows containers. Cleared on restore, like tiling containers
+    private var leafContainers: [NonLeafTreeNodeObject] = []
     /// Parents first, children in order
     private var bindings: [Binding] = []
     private var containers: [ContainerState] = []
@@ -241,18 +263,41 @@ extension Rect {
     private var mruOrders: [(node: TreeNode, children: [TreeNode])] = []
     private var visibleWorkspaces: [VisibleWorkspaces] = []
 
-    init(_ workspaces: [Workspace]) {
+    /// Every workspace of the containers. Workspaces created meanwhile are removed on restore
+    convenience init(_ containers: [WorkspacesContainer]) {
+        self.init(containers.flatMap(\.workspaces), containers: containers)
+    }
+
+    init(_ workspaces: [Workspace], containers: [WorkspacesContainer] = []) {
         self.workspaces = workspaces
+        workspaceLists = containers.map { ($0, $0.workspaces) }
+        workspaceChildren = workspaces.map { ($0, $0.children) }
+        for container in containers {
+            mruOrders.append((container, Array(container._mruChildren)))
+            visibleWorkspaces.append(VisibleWorkspaces(
+                container: container,
+                visible: container.visibleWorkspaceNameOrStale,
+                prevVisible: container.prevVisibleWorkspaceName,
+            ))
+            mruOrders.append((container.monitor, Array(container.monitor._mruChildren)))
+        }
+        // Taking the snapshot must not change anything, so only what exists is read (accessors like
+        // `rootTilingContainer` create what is missing)
         for workspace in workspaces {
-            capture(workspace.rootTilingContainer)
-            let floating = workspace.floatingWindowsContainer
-            for (index, child) in floating.children.enumerated() {
-                bindings.append(Binding(node: child, parent: floating, index: index, weight: child.snapshotAdaptiveWeight))
-                if let window = child as? Window { captureWindow(window) }
+            if let root = workspace.children.first(where: { $0 is TilingContainer }) { capture(root) }
+            let leafContainers = workspace.children.filter {
+                $0 is FloatingWindowsContainer || $0 is MacosFullscreenWindowsContainer || $0 is MacosHiddenAppsWindowsContainer
             }
-            mruOrders.append((floating, Array(floating._mruChildren)))
+            for case let leafContainer as NonLeafTreeNodeObject in leafContainers {
+                self.leafContainers.append(leafContainer)
+                for (index, child) in leafContainer.children.enumerated() {
+                    bindings.append(Binding(node: child, parent: leafContainer, index: index, weight: child.snapshotAdaptiveWeight))
+                    if let window = child as? Window { captureWindow(window) }
+                }
+                mruOrders.append((leafContainer, Array(leafContainer._mruChildren)))
+            }
             mruOrders.append((workspace, Array(workspace._mruChildren)))
-            if let container = workspace.workspacesContainer {
+            if let container = workspace.workspacesContainer, !containers.contains(where: { $0 === container }) {
                 mruOrders.append((container, Array(container._mruChildren)))
                 visibleWorkspaces.append(VisibleWorkspaces(
                     container: container,
@@ -290,11 +335,15 @@ extension Rect {
     }
 
     func restore() {
-        // Detach whatever tiling trees the workspaces have now. Containers created meanwhile stay detached and die
-        for workspace in workspaces {
+        // Detach whatever tiling trees the workspaces have now (also the ones created meanwhile). Containers created
+        // meanwhile stay detached and die
+        for workspace in workspaces + workspaceLists.flatMap(\.container.workspaces) {
             for root in workspace.children.filterIsInstance(of: TilingContainer.self) {
                 root.unbindFromParent()
             }
+        }
+        for container in leafContainers {
+            for child in container.children { child.unbindFromParent() }
         }
         for state in containers {
             state.container.restoreSnapshotState(orientation: state.orientation, layout: state.layout, lifeStatus: state.lifeStatus)
@@ -304,9 +353,17 @@ extension Rect {
         }
         // Parents are bound before their children, and siblings in order, so every index is valid when it's used
         for binding in bindings {
-            // Floating containers aren't cleared, so they may hold fewer windows than when they were captured
-            let count = binding.parent.children.count - (binding.node.parent === binding.parent ? 1 : 0)
-            binding.node.bind(to: binding.parent, adaptiveWeight: binding.weight, index: min(binding.index, count))
+            binding.node.bind(to: binding.parent, adaptiveWeight: binding.weight, index: binding.index)
+        }
+        for (workspace, children) in workspaceChildren {
+            for child in workspace.children where !children.contains(where: { $0 === child }) && child.children.isEmpty {
+                child.unbindFromParent()
+            }
+        }
+        for (container, workspaces) in workspaceLists {
+            for workspace in container.workspaces where !workspaces.contains(workspace) && workspace.children.allSatisfy(\.children.isEmpty) {
+                workspace.unbindFromParent()
+            }
         }
         for (node, children) in mruOrders {
             for child in children.reversed() where child.parent === node {

@@ -95,8 +95,10 @@ wheel.accent-color = 'system'
 wheel.haptics = true
 # While a slot is selected, outline where its release action would put windows: 'target' (the window it acts on),
 # 'all' (every window it moves) or 'off'. Previewed commands: place, fullscreen and focus (also to another monitor),
-# and the commands that rearrange windows: move, swap, layout, resize, balance-sizes, flatten-workspace-tree,
-# join-with and split, also combined with '&&', '||' and ';'. Other commands have no preview.
+# the commands that rearrange windows (move, swap, layout, resize, balance-sizes, flatten-workspace-tree, join-with,
+# split) and the ones that move them between monitors and workspaces (move-node-to-monitor, move-node-to-workspace,
+# move-workspace-to-monitor, swap-workspace-with-monitor), also combined with '&&', '||' and ';'. Other commands, and
+# windows that would end up on a workspace that isn't visible, have no preview.
 # Like the rest of the style, profiles inherit it, and a slot can override it: left = { release = '...', preview = 'off' }
 wheel.preview = 'target'
 wheel.preview-corner-radius = 10   # Points, from 0 to 40

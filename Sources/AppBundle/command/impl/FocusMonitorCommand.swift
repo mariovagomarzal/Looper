@@ -7,7 +7,7 @@ struct FocusMonitorCommand: Command {
 
     func run(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
-        return switch args.target.val.resolve(target.workspace.workspaceMonitorInfo, wrapAround: args.wrapAround) {
+        return switch args.target.val.resolve(target.workspace.workspaceMonitorInfo, wrapAround: args.wrapAround, env) {
             case .success(let targetMonitor): .from(bool: targetMonitor.visibleWorkspace.focusWorkspace())
             case .failure(let msg): .fail(io.err(msg))
         }
@@ -15,8 +15,16 @@ struct FocusMonitorCommand: Command {
 }
 
 extension MonitorTarget {
-    @MainActor func resolve(_ currentMonitor: MonitorInfo, wrapAround: Bool) -> Result<MonitorInfo, String> {
+    /// The monitor this target refers to. Directions, next and prev are relative to `currentMonitor`
+    @MainActor func resolve(_ currentMonitor: MonitorInfo, wrapAround: Bool, _ env: CmdEnv) -> Result<MonitorInfo, String> {
         switch self {
+            case .focused:
+                return .success(globalFocus.workspace.workspaceMonitorInfo)
+            case .pointer:
+                return .success(mouseLocation.monitorApproximation)
+            case .wheel:
+                guard let wheel = env.wheel else { return .failure("'wheel' monitor is only valid in wheel actions and conditions") }
+                return .success((wheel.pointerLocation ?? mouseLocation).monitorApproximation)
             case .direction(let direction):
                 guard let (monitorsInDirection, index) = currentMonitor.findRelativeMonitor(inDirection: direction) else {
                     return .failure("Should never happen. Can't find the current monitor")

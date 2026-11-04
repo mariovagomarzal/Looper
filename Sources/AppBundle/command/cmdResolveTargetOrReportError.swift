@@ -1,9 +1,11 @@
 import Common
 
 extension CmdArgs {
+    /// The workspaces of the monitor that '--monitor' refers to (in its active native Space), or of the focused monitor
     @MainActor
-    var workspace: Workspace? {
-        if let workspaceName { Workspace.get(byName: workspaceName.raw) } else { nil }
+    func workspacesContainer(_ env: CmdEnv, _ io: CmdIo) -> WorkspacesContainer? {
+        guard let monitor else { return focusedWorkspacesContainer }
+        return monitor.resolveWorkspacesContainer(relativeTo: globalFocus.workspace.workspaceMonitorInfo, env, io)
     }
 
     @MainActor
@@ -12,7 +14,9 @@ extension CmdArgs {
         if let windowId {
             return windowId.resolveOrReportError(env, io)?.toLiveFocusOrReportError(io)
         }
-        if let workspace {
+        if workspaceName != nil || monitor != nil {
+            guard let container = workspacesContainer(env, io) else { return nil }
+            let workspace = workspaceName.map { Workspace.get(byName: $0.raw, in: container) } ?? container.visibleWorkspace
             return workspace.toLiveFocus()
         }
         // Env
@@ -40,6 +44,19 @@ extension Window {
         } else {
             io.err("Window \(windowId) doesn't belong to any monitor. And thus can't even define a focused workspace")
             return nil
+        }
+    }
+}
+
+extension MonitorTarget {
+    /// The workspaces of the active native Space of the monitor. Reports an error if there is no such monitor
+    @MainActor
+    func resolveWorkspacesContainer(relativeTo currentMonitor: MonitorInfo, wrapAround: Bool = false, _ env: CmdEnv, _ io: CmdIo) -> WorkspacesContainer? {
+        switch resolve(currentMonitor, wrapAround: wrapAround, env) {
+            case .success(let monitor): return monitor.toMonitorOrRearrangeMonitors().activeWorkspacesContainer
+            case .failure(let msg):
+                io.err(msg)
+                return nil
         }
     }
 }

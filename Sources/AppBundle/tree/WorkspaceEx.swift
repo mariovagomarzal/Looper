@@ -18,9 +18,10 @@ extension Workspace {
         }
     }
 
+    /// Doesn't create the floating windows container when there is none
     @MainActor
     var floatingWindows: [Window] {
-        floatingWindowsContainer.children.filterIsInstance(of: Window.self)
+        children.filterIsInstance(of: FloatingWindowsContainer.self).first?.children.filterIsInstance(of: Window.self) ?? []
     }
 
     @MainActor

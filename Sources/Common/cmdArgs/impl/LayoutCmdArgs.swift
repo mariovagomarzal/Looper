@@ -7,6 +7,7 @@ public struct LayoutCmdArgs: CmdArgs {
         flags: [
             "--window-id": windowIdSubArgParser(),
             "--workspace": workspaceSubArgParser(),
+            "--monitor": monitorSubArgParser(\.commonState.monitor),
             "--root": trueBoolFlag(\.root),
             "--fail-if-noop": trueBoolFlag(\.failIfNoop),
             "--for-next-detected-window": trueBoolFlag(\.forNextDetectedWindow),
@@ -14,6 +15,7 @@ public struct LayoutCmdArgs: CmdArgs {
         posArgs: [newMandatoryPosArgParser(\.toggleBetween, parseToggleBetween, placeholder: LayoutDescription.unionLiteral)],
         conflictingFlags: [
             ["--window-id", "--workspace"],
+            ["--window-id", "--monitor"],
         ],
         flagAllowlist: [
             "--for-next-detected-window": [], // Allow nothing else
@@ -90,6 +92,7 @@ func parseLayoutCmdArgs(_ args: StrArrSlice) -> ParsedCmd<LayoutCmdArgs> {
             }
         }
         .filter("--workspace flag requires using an explicit --root flag") { ($0.workspaceName != nil).implies($0.root) }
+        .filter("--monitor flag requires using an explicit --root flag") { ($0.monitor != nil).implies($0.root) }
         .filter("--fail-if-noop allows only one <target-layout> argument") { $0.failIfNoop.implies($0.toggleBetween.val.count == 1) }
 }
 

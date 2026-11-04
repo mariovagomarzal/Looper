@@ -117,9 +117,16 @@ var mainMonitorInfo: MonitorInfo {
     return LazyMonitorInfo(monitorAppKitNsScreenScreensId: screen.index + 1, isMain: true, screen.value)
 }
 
+/// More monitors for tests, after the main test monitor
+nonisolated(unsafe) var extraMonitorInfosForTests: [MonitorInfo] = []
+
+func makeMonitorInfoForTests(id: Int, name: String, rect: Rect) -> MonitorInfo {
+    MonitorInfoImpl(monitorAppKitNsScreenScreensId: id, name: name, rect: rect, visibleRect: rect, isMain: false, displayUuid: nil)
+}
+
 var globalUnsortedMonitorInfos: [MonitorInfo] {
     isUnitTest
-        ? [testMonitorInfo]
+        ? unsafe [testMonitorInfo] + extraMonitorInfosForTests
         : NSScreen.screens.enumerated().map { $0.element.toMonitorInfo(monitorAppKitNsScreenScreensId: $0.offset + 1) }
 }
 

@@ -31,6 +31,6 @@ public struct MoveNodeToMonitorCmdArgs: CmdArgs {
 
 func parseMoveNodeToMonitorCmdArgs(_ args: StrArrSlice) -> ParsedCmd<MoveNodeToMonitorCmdArgs> {
     parseSpecificCmdArgs(MoveNodeToMonitorCmdArgs(rawArgs: args), args)
-        .filter("--wrap-around is incompatible with <monitor-pattern> argument") { $0.wrapAround.implies(!$0.target.val.isPatterns) }
-        .filter("--fail-if-noop is incompatible with \(MonitorTarget.casesExceptPatterns.joinedCliArgs)") { $0.failIfNoop.implies($0.target.val.isPatterns) }
+        .filter("--wrap-around requires a relative monitor: \(MonitorTarget.relativeCases.joinedCliArgs)") { $0.wrapAround.implies($0.target.val.isRelative) }
+        .filter("--fail-if-noop is incompatible with \(MonitorTarget.relativeCases.joinedCliArgs)") { $0.failIfNoop.implies(!$0.target.val.isRelative) }
 }

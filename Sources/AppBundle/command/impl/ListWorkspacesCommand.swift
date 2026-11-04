@@ -60,7 +60,7 @@ extension MonitorId {
         switch self {
             case .focused:
                 return [globalFocus.workspace.workspaceMonitorInfo]
-            case .mouse:
+            case .pointer:
                 return [mouseLocation.monitorApproximation]
             case .all:
                 return globalUnsortedMonitorInfos

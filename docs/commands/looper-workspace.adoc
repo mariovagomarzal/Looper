@@ -9,8 +9,8 @@ include::util/man-attributes.adoc[]
 == Synopsis
 [verse]
 // tag::synopsis[]
-looper workspace [-h|--help] [--auto-back-and-forth] [--fail-if-noop] [--] <workspace-name>
-looper workspace [-h|--help] [--wrap-around] [--stdin|--no-stdin] (next|prev)
+looper workspace [-h|--help] [--monitor <monitor>] [--auto-back-and-forth] [--fail-if-noop] [--] <workspace-name>
+looper workspace [-h|--help] [--monitor <monitor>] [--wrap-around] [--stdin|--no-stdin] (next|prev)
 
 // end::synopsis[]
 
@@ -37,6 +37,14 @@ in alphabetical order
 include::util/conditional-options-header.adoc[]
 
 -h, --help:: Print help
+
+--monitor <monitor>::
+Switch the workspace of another monitor, and focus it.
+`<workspace-name>`, `next` and `prev` refer to the workspaces of that monitor.
+`<monitor>` possible values: `(left|down|up|right|next|prev|focused|pointer|wheel|<monitor-pattern>)`.
+Directions, `next` and `prev` are relative to the focused monitor.
+`wheel` is the monitor that was under the mouse pointer when the wheel opened, and is only valid in wheel actions.
+See `looper-focus-monitor` for monitor patterns.
 --wrap-around:: Make it possible to jump between first and last workspaces using `(next|prev)`
 
 --auto-back-and-forth::

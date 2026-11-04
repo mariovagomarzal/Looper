@@ -1,8 +1,11 @@
+import CoreGraphics
 import Common
 
 struct WheelGestureEnv {
     /// The window that was under the mouse pointer when the wheel opened (`--window-id wheel`)
     let windowId: OpaqueWindowId?
+    /// Where the mouse pointer was when the wheel opened (`--monitor wheel`), like `mouseLocation`
+    var pointerLocation: CGPoint? = nil
 }
 
 struct CmdEnv {

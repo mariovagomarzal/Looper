@@ -24,12 +24,13 @@ final class WheelController {
     private var openRequest = 0
     /// The window under the pointer when the gesture started (`--window-id wheel`)
     private var gestureWindowId: OpaqueWindowId? = nil
+    private var gesturePointerLocation: CGPoint? = nil
     private let previewOverlay = WheelPreviewOverlay()
     /// Bumped on every selection change, so that a preview computed for an older selection is dropped
     private var previewRequest = 0
 
     /// The environment of the actions and conditions of the current gesture
-    private var gestureEnv: CmdEnv { CmdEnv.defaultEnv.withWheel(WheelGestureEnv(windowId: gestureWindowId)) }
+    private var gestureEnv: CmdEnv { CmdEnv.defaultEnv.withWheel(WheelGestureEnv(windowId: gestureWindowId, pointerLocation: gesturePointerLocation)) }
 
     private init() {}
 
@@ -52,6 +53,7 @@ final class WheelController {
         if !isOpen {
             // A new gesture. Captured before the pointer moves away
             gestureWindowId = windowUnderPointer()?.windowId
+            gesturePointerLocation = mouseLocation
         }
         guard config.wheel.variants[base]?.isEmpty == false else {
             open(profile: base)

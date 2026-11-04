@@ -18,7 +18,7 @@ final class ListWorkspacesTest: XCTestCase {
         assertNotNil(parseCommand("list-workspaces --all --format %{workspace}").cmdOrNil)
         assertEquals(parseCommand("list-workspaces --all --format %{workspace} --count").errorOrNil, "ERROR: Conflicting flags: --count, --format")
         assertEquals(parseCommand("list-workspaces --empty").errorOrNil, "Mandatory option is not specified (--all|--focused|--monitor)")
-        assertEquals(parseCommand("list-workspaces --all --focused --monitor mouse").errorOrNil, "ERROR: Conflicting flags: --all, --focused, --monitor")
+        assertEquals(parseCommand("list-workspaces --all --focused --monitor pointer").errorOrNil, "ERROR: Conflicting flags: --all, --focused, --monitor")
     }
 
     func testRunAll() async {
