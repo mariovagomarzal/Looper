@@ -141,7 +141,7 @@ final class WheelTest: XCTestCase {
         XCTAssertTrue(errors.contains("[ERROR] wheel.profiles.c.extends: Unknown wheel profile 'unknown'"))
         XCTAssertTrue(errors.contains { $0.contains("extend each other in a cycle") })
         XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.c.actions.sideways: Unknown wheel slot") })
-        XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.c.actions.left.double-click: Unknown way to finish the gesture") })
+        XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.profiles.c.actions.left.double-click: Unknown key. Possible values: release, left-click, right-click, other-click, preview") })
         XCTAssertTrue(errors.contains("[ERROR] wheel.triggers.fn: Unknown wheel profile 'unknown'"))
         XCTAssertTrue(errors.contains("[ERROR] wheel.triggers.shift-fn: 'fn-shift' is declared twice"))
         XCTAssertTrue(errors.contains { $0.hasPrefix("[ERROR] wheel.triggers.fn-foo: Can't parse 'fn-foo'") })
@@ -401,5 +401,70 @@ final class WheelTest: XCTestCase {
         XCTAssertEqual(resolved, "nested")
         // A variant requested by name skips its own condition
         assertEquals(await resolveWheelVariant("other-workspace", .defaultEnv), "other-workspace")
+    }
+
+    func testParsePreviewConfig() {
+        let result = parseConfig(
+            """
+            wheel.preview = 'all'
+            wheel.preview-corner-radius = 16
+            wheel.preview-border-width = 0
+
+            [wheel.profiles.default.actions]
+            left = { release = 'place left-half', preview = 'off' }
+            right = 'place right-half'
+
+            [wheel.profiles.quiet]
+            extends = 'default'
+            preview = 'off'
+            [wheel.profiles.quiet.actions]
+            right = { preview = 'target' }
+            """,
+        )
+        assertEquals(result.errors, [])
+        let wheel = result.config.wheel
+        assertEquals(wheel.profiles["default"]?.style.preview, .all)
+        assertEquals(wheel.profiles["default"]?.style.previewCornerRadius, 16)
+        assertEquals(wheel.profiles["default"]?.style.previewBorderWidth, 0)
+        assertEquals(wheel.profiles["default"]?.preview(.left), .off)
+        assertEquals(wheel.profiles["default"]?.preview(.right), .all)
+        // Inherited per slot, and a slot table may only change the preview
+        assertEquals(wheel.profiles["quiet"]?.preview(.left), .off)
+        assertEquals(wheel.profiles["quiet"]?.preview(.right), .target)
+        assertEquals(wheel.profiles["quiet"]?.preview(.up), .off)
+        XCTAssertNotNil(wheel.profiles["quiet"]?.action(.right, .release))
+
+        assertEquals(parseConfig("wheel.preview = 'some'").strErrors, ["[ERROR] wheel.preview: Expected 'off', 'target', 'all'"])
+    }
+
+    func testComputePreview() async {
+        let workspace = Workspace.get(byName: "a")
+        let left = TestWindow.new(id: 1, parent: workspace.rootTilingContainer, rect: Rect(topLeftX: 0, topLeftY: 0, width: 50, height: 50))
+        _ = TestWindow.new(id: 2, parent: workspace.rootTilingContainer, rect: Rect(topLeftX: 50, topLeftY: 0, width: 50, height: 50))
+        let floating = TestWindow.new(id: 3, parent: workspace.floatingWindowsContainer, rect: Rect(topLeftX: 10, topLeftY: 10, width: 20, height: 20))
+        assertTrue(left.focusWindow())
+        let wheelEnv = CmdEnv.defaultEnv.withWheel(WheelGestureEnv(windowId: floating.windowId))
+        func preview(_ command: String, _ mode: WheelPreviewMode = .target) async -> [WheelPreviewItem] {
+            await computeWheelPreview(parseCommand(command).cmdOrDie, wheelEnv, mode)
+        }
+
+        let placed = await preview("place --window-id wheel maximize")
+        assertEquals(placed.map(\.windowId), [3])
+        assertEquals(placed.first?.kind, .frame)
+        let area = workspace.workspaceMonitorInfo.visibleRectPaddedByOuterGaps
+        assertEquals(placed.first.map { [$0.rect.minX, $0.rect.minY, $0.rect.width, $0.rect.height] }, [area.minX, area.minY, area.width, area.height])
+
+        // 'place' fails on tiled windows, so it has no preview
+        assertEquals(await preview("place left-half"), [])
+        // Focus outlines the window that gets focus
+        assertEquals(await preview("focus right").map(\.windowId), [2])
+        assertEquals(await preview("focus right").first?.kind, .focus)
+        assertEquals(await preview("focus left"), []) // No window there
+        // Tiling commands are simulated (see WheelSimulationTest)
+        assertEquals(await preview("move right").map(\.windowId), [1])
+        // Unsupported commands, shells and the 'off' mode have no preview
+        assertEquals(await preview("workspace b"), [])
+        assertEquals(await preview("focus right && focus left"), [])
+        assertEquals(await preview("place --window-id wheel maximize", .off), [])
     }
 }

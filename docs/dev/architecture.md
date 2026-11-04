@@ -76,6 +76,14 @@ Sources/AppBundle/wheel/
   action in a light refresh session.
 - `WheelView.swift`: SwiftUI view, selection zones (dead zone, center, eight directions) and animatable shapes.
 - `wheel open|cancel` commands open the wheel without holding keys, for bindings, scripts and the CLI.
+- `WheelPreview.swift`: previews of the release action of the selection, drawn in one transparent panel per screen.
+  `place`, `fullscreen` and `focus` are computed directly.
+- `WheelSimulation.swift`: previews of tiling commands. The command is applied for real to the tree, the frames are
+  computed with `layoutFrames` (a side effect free mirror of `layoutWorkspace`), and `TreeSnapshot` puts the tree back
+  exactly as it was: same node objects, order, weights, layouts, MRU orders, focus and visible workspaces. Everything
+  is synchronous on the main actor, so nothing else can observe the tree in between. That's why commands expose
+  synchronous entry points (`MoveCommand.apply`, `SwapCommand.apply`, `LayoutCommand.applyTilingLayout`).
+  `WheelSimulationTest` checks that the mirror matches the real layout and that simulations leave no trace.
 - Finished gestures are logged in the `wheel` category of the os log.
 
 ## Tree Model subsystem

@@ -6,7 +6,6 @@ struct MoveCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = true
 
     func run(_ env: CmdEnv, _ io: CmdIo) async -> BinaryExitCode {
-        let direction = args.direction.val
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
         guard let currentWindow = target.windowOrNil else {
             return .fail(io.err(noWindowIsFocused))
@@ -17,6 +16,16 @@ struct MoveCommand: Command {
             failIfMacosNativeFullscreen: args.failIfMacosNativeFullscreen,
         ) {
             return .fail
+        }
+        return apply(env, io)
+    }
+
+    /// The tree change, without the asynchronous fullscreen checks. Synchronous, so that the wheel preview can simulate it
+    @MainActor func apply(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
+        let direction = args.direction.val
+        guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
+        guard let currentWindow = target.windowOrNil else {
+            return .fail(io.err(noWindowIsFocused))
         }
         switch currentWindow.windowParentCases {
             case nil: return .fail

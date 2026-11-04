@@ -222,3 +222,11 @@ extension Workspace {
         _ = Result { try process.run() }
     }
 }
+
+/// Runs `body` and puts the global focus back exactly as it was, without any of the side effects of `setFocus`.
+/// For simulations that must leave no trace, like the wheel preview
+@MainActor func withGlobalFocusRestored<T>(_ body: () -> T) -> T {
+    let focus = _focus
+    defer { _focus = focus }
+    return body()
+}

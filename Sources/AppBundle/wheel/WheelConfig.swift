@@ -30,6 +30,10 @@ struct WheelProfile: Sendable {
     var style = WheelStyleConfig()
     /// Unbound (slot, finish) pairs do nothing
     var actions: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
+    /// Per slot overrides of `style.preview`
+    var previews: [WheelSlot: WheelPreviewMode] = [:]
+
+    func preview(_ slot: WheelSlot) -> WheelPreviewMode { previews[slot] ?? style.preview }
     /// Makes the profile a variant of the profile it extends: it replaces that profile when the wheel opens and the
     /// condition succeeds. Evaluated like 'test' commands, in the context of the focused window
     var condition: Shell<any Command>? = nil
@@ -47,9 +51,17 @@ struct WheelStyleConfig: Equatable, Sendable {
     var accentColor: WheelAccentColor = .system
     /// Trackpad haptic feedback when the selection changes
     var haptics: Bool = true
+    /// Which windows the preview of the selected action outlines
+    var preview: WheelPreviewMode = .target
+    /// Points
+    var previewCornerRadius: Int = 10
+    /// Points. 0 draws no border
+    var previewBorderWidth: Int = 2
 
     static let cornerRadiusRange = 0 ... 100
     static let thicknessRange = 10 ... 35
+    static let previewCornerRadiusRange = 0 ... 40
+    static let previewBorderWidthRange = 0 ... 10
 
     func applying(_ overrides: WheelStyleOverrides) -> WheelStyleConfig {
         WheelStyleConfig(
@@ -57,8 +69,20 @@ struct WheelStyleConfig: Equatable, Sendable {
             thickness: overrides.thickness ?? thickness,
             accentColor: overrides.accentColor ?? accentColor,
             haptics: overrides.haptics ?? haptics,
+            preview: overrides.preview ?? preview,
+            previewCornerRadius: overrides.previewCornerRadius ?? previewCornerRadius,
+            previewBorderWidth: overrides.previewBorderWidth ?? previewBorderWidth,
         )
     }
+}
+
+/// Which windows the wheel outlines where the selected action would put them
+enum WheelPreviewMode: String, CaseIterable, Equatable, Sendable {
+    case off
+    /// Only the window the action acts on
+    case target
+    /// Every window that the action moves or resizes
+    case all
 }
 
 enum WheelAccentColor: Equatable, Sendable {
@@ -139,13 +163,21 @@ struct WheelStyleOverrides: Withable, Equatable, Sendable {
     var thickness: Int? = nil
     var accentColor: WheelAccentColor? = nil
     var haptics: Bool? = nil
+    var preview: WheelPreviewMode? = nil
+    var previewCornerRadius: Int? = nil
+    var previewBorderWidth: Int? = nil
 }
 
 private struct WheelProfileDraft: Withable, Sendable {
     var extends: String? = nil
     var condition: Shell<any Command>? = nil
     var style = WheelStyleOverrides()
+    var actions = WheelActionsDraft()
+}
+
+private struct WheelActionsDraft: Sendable {
     var actions: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
+    var previews: [WheelSlot: WheelPreviewMode] = [:]
 }
 
 private struct WheelDraft: Withable, Sendable {
@@ -159,12 +191,16 @@ private let profilesKey = "profiles"
 private let triggersKey = "triggers"
 private let extendsKey = "extends"
 private let conditionKey = "if"
+private let previewKey = "preview"
 
 private let wheelParser: [String: any ParserProtocol<WheelDraft>] = [
     "corner-radius": Parser(\.style.cornerRadius, parseCornerRadius),
     "thickness": Parser(\.style.thickness, parseThickness),
     "accent-color": Parser(\.style.accentColor, parseOptionalAccentColor),
     "haptics": Parser(\.style.haptics, parseOptionalBool),
+    "preview": Parser(\.style.preview, parseOptionalPreviewMode),
+    "preview-corner-radius": Parser(\.style.previewCornerRadius) { parseIntInRange($0, $1, WheelStyleConfig.previewCornerRadiusRange).map(Optional.some) },
+    "preview-border-width": Parser(\.style.previewBorderWidth) { parseIntInRange($0, $1, WheelStyleConfig.previewBorderWidthRange).map(Optional.some) },
     profilesKey: Parser(\.profiles, parseProfileDrafts),
     triggersKey: Parser(\.triggers) { parseTriggers($0, $1, &$2) },
     "release-delay": Parser(\.releaseDelay) { parseIntInRange($0, $1, WheelConfig.releaseDelayRange).map(Optional.some) },
@@ -175,6 +211,9 @@ private let profileParser: [String: any ParserProtocol<WheelProfileDraft>] = [
     "thickness": Parser(\.style.thickness, parseThickness),
     "accent-color": Parser(\.style.accentColor, parseOptionalAccentColor),
     "haptics": Parser(\.style.haptics, parseOptionalBool),
+    "preview": Parser(\.style.preview, parseOptionalPreviewMode),
+    "preview-corner-radius": Parser(\.style.previewCornerRadius) { parseIntInRange($0, $1, WheelStyleConfig.previewCornerRadiusRange).map(Optional.some) },
+    "preview-border-width": Parser(\.style.previewBorderWidth) { parseIntInRange($0, $1, WheelStyleConfig.previewBorderWidthRange).map(Optional.some) },
     extendsKey: Parser(\.extends) { parseString($0, $1).map(Optional.some) },
     conditionKey: Parser(\.condition, parseCondition),
     "actions": Parser(\.actions, parseActions),
@@ -190,6 +229,16 @@ private func parseThickness(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) ->
 
 private func parseOptionalAccentColor(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<WheelAccentColor?> {
     parseWheelAccentColor(raw, backtrace).map(Optional.some)
+}
+
+private func parseOptionalPreviewMode(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<WheelPreviewMode?> {
+    parsePreviewMode(raw, backtrace).map(Optional.some)
+}
+
+private func parsePreviewMode(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<WheelPreviewMode> {
+    parseString(raw, backtrace).flatMap { string in
+        WheelPreviewMode(rawValue: string).toResult(.init(backtrace, "Expected \(WheelPreviewMode.allCases.lazy.map { "'\($0.rawValue)'" }.joined(separator: ", "))"))
+    }
 }
 
 private func parseOptionalBool(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> ResOrConfigParseDiagnostic<Bool?> {
@@ -223,12 +272,12 @@ private func parseCondition(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ 
     return parseCommand(rawString, allowExecAndForget: false, allowEval: false).toResult().toParsedConfig(backtrace).getOrNil(appendErrorTo: &c.errors)
 }
 
-private func parseActions(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> [WheelSlot: [WheelFinish: Shell<any Command>]] {
+private func parseActions(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> WheelActionsDraft {
     guard let table = raw.asDictOrNil else {
         c.errors.append(expectedActualTypeDiagnostic(expected: .table, actual: raw.tomlType, backtrace))
-        return [:]
+        return WheelActionsDraft()
     }
-    var result: [WheelSlot: [WheelFinish: Shell<any Command>]] = [:]
+    var result = WheelActionsDraft()
     for (key, value) in table {
         let backtrace = backtrace + .key(key)
         guard let slot = WheelSlot(rawValue: key) else {
@@ -240,16 +289,21 @@ private func parseActions(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c:
             var slotActions: [WheelFinish: Shell<any Command>] = [:]
             for (finishKey, command) in finishes {
                 let backtrace = backtrace + .key(finishKey)
+                if finishKey == previewKey {
+                    // Only the release action can be previewed: clicks run right away
+                    result.previews[slot] = parsePreviewMode(command, backtrace).getOrNil(appendErrorTo: &c.errors)
+                    continue
+                }
                 guard let finish = WheelFinish(rawValue: finishKey) else {
-                    c.errors.append(.init(backtrace, "Unknown way to finish the gesture. Possible values: \(WheelFinish.allCases.map(\.rawValue).joined(separator: ", "))"))
+                    c.errors.append(.init(backtrace, "Unknown key. Possible values: \((WheelFinish.allCases.map(\.rawValue) + [previewKey]).joined(separator: ", "))"))
                     continue
                 }
                 slotActions[finish] = parseShellOfCommandsForConfig(command, backtrace, &c)
             }
-            result[slot] = slotActions
+            result.actions[slot] = slotActions
         } else {
             // A plain command runs when the keys are released
-            result[slot] = [.release: parseShellOfCommandsForConfig(value, backtrace, &c)]
+            result.actions[slot] = [.release: parseShellOfCommandsForConfig(value, backtrace, &c)]
         }
     }
     return result
@@ -360,11 +414,12 @@ private func resolveWheel(_ draft: WheelDraft, _ backtrace: ConfigBacktrace, _ c
         profile.condition = profileDraft.condition
         profile.style = name == defaultWheelProfile ? baseStyle : (parent?.style ?? baseStyle).applying(profileDraft.style)
         profile.actions = parent?.actions ?? [:]
-        for (slot, finishes) in profileDraft.actions {
+        for (slot, finishes) in profileDraft.actions.actions {
             for (finish, command) in finishes {
                 profile.actions[slot, default: [:]][finish] = command
             }
         }
+        profile.previews = (parent?.previews ?? [:]).merging(profileDraft.actions.previews) { $1 }
         resolved[name] = profile
         return profile
     }

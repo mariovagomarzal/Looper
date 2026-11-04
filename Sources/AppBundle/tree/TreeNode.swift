@@ -122,6 +122,9 @@ open class TreeNode: Equatable, AeroAny {
         _parent.markAsMostRecentChild()
     }
 
+    /// The weight exactly as stored, for tree snapshots. See ``TreeSnapshot``
+    var snapshotAdaptiveWeight: CGFloat { adaptiveWeight }
+
     var mostRecentChild: TreeNode? { _mruChildren.mostRecent ?? children.last }
 
     var mostRecentInhabitedChild: TreeNode? {

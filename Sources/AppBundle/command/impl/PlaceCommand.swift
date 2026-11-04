@@ -6,10 +6,22 @@ struct PlaceCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = true
 
     func run(_ env: CmdEnv, _ io: CmdIo) async -> BinaryExitCode {
-        guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
-        guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
+        guard let (window, frame) = await targetFrame(env, io) else { return .fail }
+        window.isFullscreen = false
+        window.setAxFrame(frame.topLeftCorner, frame.size)
+        return .succ
+    }
+
+    /// The window to place and where it goes. Shared with the wheel preview
+    @MainActor func targetFrame(_ env: CmdEnv, _ io: CmdIo) async -> (Window, Rect)? {
+        guard let target = args.resolveTargetOrReportError(env, io) else { return nil }
+        guard let window = target.windowOrNil else {
+            io.err(noWindowIsFocused)
+            return nil
+        }
         guard case .floatingWindowsContainer = window.windowParentCases else {
-            return .fail(io.err("'place' only works with floating windows. Make the window floating first, e.g. 'layout floating && place \(args.placement.val.description)'"))
+            io.err("'place' only works with floating windows. Make the window floating first, e.g. 'layout floating && place \(args.placement.val.description)'")
+            return nil
         }
         let monitor = target.workspace.workspaceMonitorInfo
         let gaps = ResolvedGaps(gaps: config.gaps, monitor: monitor)
@@ -20,11 +32,10 @@ struct PlaceCommand: Command {
             innerGaps: CGSize(width: gaps.inner.horizontal, height: gaps.inner.vertical),
             currentSize: currentSize,
         ) else {
-            return .fail(io.err("Can't read the size of the window"))
+            io.err("Can't read the size of the window")
+            return nil
         }
-        window.isFullscreen = false
-        window.setAxFrame(frame.topLeftCorner, frame.size)
-        return .succ
+        return (window, frame)
     }
 }
 

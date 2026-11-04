@@ -6,6 +6,11 @@ struct SwapCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache: Bool = true
 
     func run(_ env: CmdEnv, _ io: CmdIo) async -> BinaryExitCode {
+        apply(env, io)
+    }
+
+    /// Synchronous, so that the wheel preview can simulate it
+    @MainActor func apply(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
         guard let target = args.resolveTargetOrReportError(env, io) else {
             return .fail
         }

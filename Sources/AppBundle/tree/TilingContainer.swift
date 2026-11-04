@@ -82,3 +82,12 @@ extension String {
         }
     }
 }
+
+extension TilingContainer {
+    /// Puts back the state saved by a tree snapshot, bypassing normalizations. See ``TreeSnapshot``
+    func restoreSnapshotState(orientation: Orientation, layout: Layout, lifeStatus: TilingContainerLifeStatus) {
+        _orientation = orientation
+        _layout = layout
+        self.lifeStatus = lifeStatus
+    }
+}

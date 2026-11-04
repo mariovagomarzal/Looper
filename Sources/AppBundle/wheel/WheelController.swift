@@ -24,6 +24,9 @@ final class WheelController {
     private var openRequest = 0
     /// The window under the pointer when the gesture started (`--window-id wheel`)
     private var gestureWindowId: OpaqueWindowId? = nil
+    private let previewOverlay = WheelPreviewOverlay()
+    /// Bumped on every selection change, so that a preview computed for an older selection is dropped
+    private var previewRequest = 0
 
     /// The environment of the actions and conditions of the current gesture
     private var gestureEnv: CmdEnv { CmdEnv.defaultEnv.withWheel(WheelGestureEnv(windowId: gestureWindowId)) }
@@ -103,6 +106,7 @@ final class WheelController {
         withAnimation(.smooth(duration: 0.25)) { model.style = newStyle }
         // A thicker or thinner ring moves the boundary between the center and the directions
         _ = model.select(WheelSelection(offset: lastOffset, thickness: newStyle.thickness))
+        updatePreview()
         wheelLog.notice("switched: \(name, privacy: .public)")
     }
 
@@ -152,6 +156,8 @@ final class WheelController {
 
     private func close() {
         isOpen = false
+        previewRequest += 1
+        previewOverlay.hide()
         wheelDidClose()
         if let mouseMonitor { NSEvent.removeMonitor(mouseMonitor) }
         mouseMonitor = nil
@@ -171,8 +177,33 @@ final class WheelController {
         guard isOpen else { return }
         lastOffset = pointer.move(to: NSEvent.mouseLocation, eventDelta: CGVector(dx: event.deltaX, dy: -event.deltaY))
         let selection = WheelSelection(offset: lastOffset, thickness: model.style.thickness)
-        if model.select(selection), selection != .none, profile.style.haptics {
+        guard model.select(selection) else { return }
+        if selection != .none, profile.style.haptics {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        }
+        updatePreview()
+    }
+
+    /// Outlines where the release action of the selection would put windows
+    private func updatePreview() {
+        previewRequest += 1
+        let request = previewRequest
+        let profile = profile
+        guard let slot = model.selection.slot, let action = profile.action(slot, .release) else {
+            previewOverlay.hide()
+            return
+        }
+        let mode = profile.preview(slot)
+        let env = gestureEnv
+        Task.startUnstructured { @MainActor in
+            let items = await computeWheelPreview(action, env, mode)
+            let controller = WheelController.shared
+            guard controller.isOpen, controller.previewRequest == request else { return }
+            if items.isEmpty {
+                controller.previewOverlay.hide()
+            } else {
+                controller.previewOverlay.show(items, style: profile.style, colors: controller.model.style.colors)
+            }
         }
     }
 }
@@ -257,7 +288,7 @@ private final class WheelPanel: NSPanel {
         isOpaque = false
         isReleasedWhenClosed = false
         hidesOnDeactivate = false
-        contentView = NSHostingView(rootView: WheelView(model: model))
+        contentView = panelContentView(WheelView(model: model))
     }
 
     override var canBecomeKey: Bool { false }
