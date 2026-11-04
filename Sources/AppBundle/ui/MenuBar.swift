@@ -83,10 +83,10 @@ func quitButton() -> some View {
     }.keyboardShortcut("Q", modifiers: .command)
 }
 
-@MainActor @ViewBuilder
-func openConfigButton(showShortcutGroup: Bool = false) -> some View {
+@MainActor
+func openConfigButton() -> some View {
     let editor = getTextEditorToOpenConfig()
-    let button = Button("Open config in '\(editor.lastPathComponent)'") {
+    return Button("Open config in '\(editor.lastPathComponent)'") {
         let fallbackConfig: URL = FileManager.default.homeDirectoryForCurrentUser.appending(path: configDotfileName)
         switch findCustomConfigUrl() {
             case .file(let url):
@@ -98,16 +98,12 @@ func openConfigButton(showShortcutGroup: Bool = false) -> some View {
                 fallbackConfig.open(with: editor)
         }
     }.keyboardShortcut(",", modifiers: .command)
-    switch showShortcutGroup {
-        case true: shortcutGroup(label: Text("⌘ ,"), content: button)
-        case false: button
-    }
 }
 
 @MainActor @ViewBuilder
-func reloadConfigButton(showShortcutGroup: Bool = false, warningsAsErrors: Bool) -> some View {
+func reloadConfigButton(warningsAsErrors: Bool) -> some View {
     if let token: RunSessionGuard = .isServerEnabled {
-        let button = Button("Reload config") {
+        Button("Reload config") {
             Task.startUnstructured {
                 try await runLightSession(.menuBarButton, token) {
                     let args: ReloadConfigCmdArgs = ReloadConfigCmdArgs(rawArgs: []).with(\.warningsAsErrors, warningsAsErrors)
@@ -115,20 +111,6 @@ func reloadConfigButton(showShortcutGroup: Bool = false, warningsAsErrors: Bool)
                 }
             }
         }.keyboardShortcut("R", modifiers: .command)
-        switch showShortcutGroup {
-            case true: shortcutGroup(label: Text("⌘ R"), content: button)
-            case false: button
-        }
-    }
-}
-
-func shortcutGroup(label: some View, content: some View) -> some View {
-    GroupBox {
-        VStack(alignment: .trailing, spacing: 6) {
-            label
-                .foregroundStyle(Color.secondary)
-            content
-        }
     }
 }
 

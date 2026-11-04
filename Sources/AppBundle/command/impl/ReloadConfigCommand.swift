@@ -31,24 +31,21 @@ struct ReloadConfigResult {
     let parseResult = result.parseConfigResult
     let warningsAsErrors = args.warningsAsErrors
 
-    var errors = parseResult.errors.map { $0.description(.error) }
-    var warnings = parseResult.warnings.map { $0.description(.warning) }
+    var warningDiagnostics = parseResult.warnings
     if parseResult.allowReloadConfig && !args.dryRun, let warning = syncStartAtLogin(isWanted: parseResult.config.startAtLogin) {
-        warnings.append(warning.description(.warning))
+        warningDiagnostics.append(warning)
     }
+    var errors = parseResult.errors.map { $0.description(.error) }
+    var warnings = warningDiagnostics.map { $0.description(.warning) }
     let containsWarnings = !warnings.isEmpty
 
     if !args.noGui {
-        let lines = errors + warnings
-        switch true {
-            case !errors.isEmpty:
-                let msg = failedToParseMsg(configUrl: result.configUrl, errorsCount: parseResult.errors.count, warningsCount: warnings.count, lines: lines)
-                MessageModel.shared.message = Message(body: msg, containsWarnings: containsWarnings)
-            case warningsAsErrors && !warnings.isEmpty:
-                let msg = parsedWithWarningsMsg(configUrl: result.configUrl, warningsCount: warnings.count, lines: lines)
-                MessageModel.shared.message = Message(body: msg, containsWarnings: containsWarnings)
-            default:
-                MessageModel.shared.message = nil
+        if !errors.isEmpty || (warningsAsErrors && !warnings.isEmpty) {
+            let path = (result.configUrl.absoluteURL.path as NSString).abbreviatingWithTildeInPath
+            let diagnostics = ConfigDiagnostics(path: path, errors: parseResult.errors, warnings: warningDiagnostics)
+            MessageModel.shared.message = Message(content: .configDiagnostics(diagnostics))
+        } else {
+            MessageModel.shared.message = nil
         }
     }
     if parseResult.allowReloadConfig && !args.dryRun {
@@ -70,16 +67,4 @@ struct ReloadConfigResult {
         stdout: errors.joined(separator: "\n\n"),
         stderr: warnings.joined(separator: "\n\n"),
     )
-}
-
-private func failedToParseMsg(configUrl: URL, errorsCount: Int, warningsCount: Int, lines: [String]) -> String {
-    let path = configUrl.absoluteURL.path.singleQuoted
-    let header = "Failed to parse \(path). \(errorsCount) error(s). \(warningsCount) warning(s)"
-    return "\(header)\n\n\(lines.joined(separator: "\n\n"))"
-}
-
-private func parsedWithWarningsMsg(configUrl: URL, warningsCount: Int, lines: [String]) -> String {
-    let path = configUrl.absoluteURL.path.singleQuoted
-    let header = "Parsed \(path) with \(warningsCount) warning(s). Feel free to close this window."
-    return "\(header)\n\n\(lines.joined(separator: "\n\n"))"
 }
