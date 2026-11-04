@@ -153,15 +153,7 @@ extension TilingContainer {
 
         guard let mruIndex: Int = mostRecentInhabitedChild?.ownIndex(in: .inhabitedOnly) else { return }
         for (index, child) in inhabitedChildren.enumerated() {
-            let padding = CGFloat(config.accordionPadding)
-            let (lPadding, rPadding): (CGFloat, CGFloat) = switch index {
-                case 0 where inhabitedChildren.count == 1: (0, 0)
-                case 0:                                (0, padding)
-                case inhabitedChildren.indices.last:   (padding, 0)
-                case mruIndex - 1:                     (0, 2 * padding)
-                case mruIndex + 1:                     (2 * padding, 0)
-                default:                               (padding, padding)
-            }
+            let (lPadding, rPadding) = accordionPaddings(index, count: inhabitedChildren.count, mruIndex: mruIndex, padding: CGFloat(config.accordionPadding))
             switch orientation {
                 case .h:
                     try await child.layoutRecursive(
@@ -181,5 +173,20 @@ extension TilingContainer {
                     )
             }
         }
+    }
+}
+
+/// Where a child of an accordion starts and ends, inset from the edges of the accordion.
+///
+/// The neighbors of the most recent child peek out at the edges, each on its side. Every other child stays in the
+/// middle, behind the most recent one, so it never covers a neighbor whatever the order of windows in macOS. Neighbors
+/// and the others keep the same place while the most recent child changes, so few windows move on every focus change
+func accordionPaddings(_ index: Int, count: Int, mruIndex: Int, padding: CGFloat) -> (CGFloat, CGFloat) {
+    if count == 1 { return (0, 0) }
+    return switch index {
+        case mruIndex: (mruIndex > 0 ? padding : 0, mruIndex < count - 1 ? padding : 0)
+        case mruIndex - 1: (0, padding)
+        case mruIndex + 1: (padding, 0)
+        default: (padding, padding)
     }
 }

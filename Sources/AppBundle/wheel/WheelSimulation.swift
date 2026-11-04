@@ -195,14 +195,7 @@ private struct FramesContext {
         guard let mruIndex = container.mostRecentInhabitedChild?.ownIndex(in: .inhabitedOnly) else { return }
         let padding = CGFloat(config.accordionPadding)
         for (index, child) in children.enumerated() {
-            let (lPadding, rPadding): (CGFloat, CGFloat) = switch index {
-                case 0 where children.count == 1: (0, 0)
-                case 0: (0, padding)
-                case children.indices.last: (padding, 0)
-                case mruIndex - 1: (0, 2 * padding)
-                case mruIndex + 1: (2 * padding, 0)
-                default: (padding, padding)
-            }
+            let (lPadding, rPadding) = accordionPaddings(index, count: children.count, mruIndex: mruIndex, padding: padding)
             switch container.orientation {
                 case .h: layout(child, point + CGPoint(x: lPadding, y: 0), width: width - rPadding - lPadding, height: height, &result)
                 case .v: layout(child, point + CGPoint(x: 0, y: lPadding), width: width, height: height - lPadding - rPadding, &result)

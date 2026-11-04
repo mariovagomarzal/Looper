@@ -53,6 +53,10 @@ enum GlobalObserver {
         nc.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main, using: onNotif)
         nc.addObserver(forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main, using: onNotif)
 
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { _ in
+            let location = mouseLocation
+            Task.startUnstructured { @MainActor in leftMouseDownLocation = location }
+        }
         NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { _ in
             guard let token: RunSessionGuard = .isServerEnabled else { return }
             // todo reduce number of refreshSession in the callback
