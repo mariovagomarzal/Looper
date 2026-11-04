@@ -17,9 +17,9 @@ final class MenuBarConfigTest: XCTestCase {
             [Item(name: "1", monitor: "A", state: .focused), Item(name: "2", monitor: "A", state: .occupied), Item(name: "3", monitor: "A", state: .empty)],
             [Item(name: "dev", monitor: "B", state: .visible)],
         ])
-        assertEquals(render("", state), [.symbol("1.square.fill"), .text(" │ dev")])
+        assertEquals(render("", state), [.symbol("looper"), .text(" "), .symbol("1.square.fill"), .text(" │ dev")])
         // The mode comes first, separated by a space
-        assertEquals(render("", state.with(\.mode, "service")), [.symbol("s.circle"), .text(" "), .symbol("1.square.fill"), .text(" │ dev")])
+        assertEquals(render("", state.with(\.mode, "service")), [.symbol("looper"), .text(" "), .symbol("s.circle"), .text(" "), .symbol("1.square.fill"), .text(" │ dev")])
     }
 
     func testTemplates() {
@@ -42,12 +42,12 @@ final class MenuBarConfigTest: XCTestCase {
     }
 
     func testAlternativesAndMissingSymbols() {
-        let toml = "menu-bar.workspace.focused = [':%{workspace}.square.fill:', '[%{workspace}]']"
+        let toml = "menu-bar.format = '%{workspaces}'\nmenu-bar.workspace.focused = [':%{workspace}.square.fill:', '[%{workspace}]']"
         let state = MenuBarState(monitors: [[Item(name: "Dev", monitor: "A", state: .focused)]])
         assertEquals(render(toml, state), [.text("[Dev]")])
         assertEquals(render(toml, MenuBarState(monitors: [[Item(name: "B", monitor: "A", state: .focused)]])), [.symbol("b.square.fill")])
         // Without a drawable alternative, the name of the symbol is shown
-        assertEquals(render("menu-bar.workspace.focused = ':%{workspace}.square:'", state), [.text("dev.square")])
+        assertEquals(render("menu-bar.format = '%{workspaces}'\nmenu-bar.workspace.focused = ':%{workspace}.square:'", state), [.text("dev.square")])
     }
 
     func testModes() {
@@ -67,7 +67,7 @@ final class MenuBarConfigTest: XCTestCase {
         assertEquals(render(toml, state.with(\.mode, "resize")), [.symbol("arrow.up.left.and.arrow.down.right"), .text("1")])
         assertEquals(render(toml, state.with(\.mode, "service")), [.text("Service: 1")])
         // A single template applies to every mode but the main one
-        let single = "menu-bar.mode = '[%{mode|initial|upper}]'\nmenu-bar.workspace.focused = '%{workspace}'"
+        let single = "menu-bar.format = '%{mode} %{workspaces}'\nmenu-bar.mode = '[%{mode|initial|upper}]'\nmenu-bar.workspace.focused = '%{workspace}'"
         assertEquals(render(single, state), [.text("1")])
         assertEquals(render(single, state.with(\.mode, "service")), [.text("[S] 1")])
     }

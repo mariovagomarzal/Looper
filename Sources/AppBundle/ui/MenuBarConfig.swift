@@ -5,7 +5,7 @@ import Common
 // colon. A list of templates is a list of alternatives: the first one whose symbols all exist is shown.
 
 struct MenuBarConfig: Equatable, Sendable {
-    var format: MenuBarAlternatives = parseDefault("%{mode} %{workspaces}", .format)
+    var format: MenuBarAlternatives = parseDefault(":looper: %{mode} %{workspaces}", .format)
     /// Templates of the active mode, by mode name. `anyMode` applies to the modes without their own, except the main one
     var mode: [String: MenuBarAlternatives] = [anyMode: parseDefault([":%{mode|initial}.circle:", "(%{mode|initial|upper})"], .mode)]
     /// Templates of the workspaces in each state. Workspaces in a state without a template aren't shown
@@ -245,7 +245,7 @@ func parseMenuBarTemplate(_ raw: String, _ context: MenuBarContext) -> Result<Me
             flushText()
             if let name = symbol {
                 if name.isEmpty { return failure("Empty symbol name in '\(raw)'") }
-                if case .some(let constant) = constantSymbolName(name), !isSfSymbol(constant) {
+                if case .some(let constant) = constantSymbolName(name), !isMenuBarSymbol(constant) {
                     return failure("Unknown SF Symbol '\(constant)' in '\(raw)'")
                 }
                 tokens.append(.symbol(name))
@@ -287,8 +287,16 @@ struct MenuBarState: Equatable, Sendable, Withable {
     var monitors: [[WorkspaceItem]] = []
 }
 
-/// Renders the menu bar. `symbolExists` is `isSfSymbol`, injectable for tests
-func renderMenuBar(_ config: MenuBarConfig, _ state: MenuBarState, symbolExists: (String) -> Bool = isSfSymbol) -> [MenuBarSegment] {
+/// The symbol name of Looper's own glyph, ':looper:'
+let looperGlyphSymbol = "looper"
+
+/// SF Symbols and Looper's glyph
+func isMenuBarSymbol(_ name: String) -> Bool {
+    name == looperGlyphSymbol || isSfSymbol(name)
+}
+
+/// Renders the menu bar. `symbolExists` is `isMenuBarSymbol`, injectable for tests
+func renderMenuBar(_ config: MenuBarConfig, _ state: MenuBarState, symbolExists: (String) -> Bool = isMenuBarSymbol) -> [MenuBarSegment] {
     var workspaces: [MenuBarSegment] = []
     var isFirstGroup = true
     for monitor in state.monitors {

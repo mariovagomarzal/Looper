@@ -67,9 +67,7 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
             case (.granted, true):
                 MenuBarLabel().environmentObject(viewModel)
             case (.granted, false):
-                Image(systemName: "pause.circle.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
+                PausedMenuBarLabel()
             case (_, _):
                 Image(systemName: "exclamationmark.triangle.fill")
                     .resizable()
@@ -131,4 +129,16 @@ func getTextEditorToOpenConfig() -> URL {
     NSWorkspace.shared.urlForApplication(toOpen: findCustomConfigUrl().urlOrNil ?? defaultConfigUrl)?
         .takeIf { $0.lastPathComponent != "Xcode.app" } // Blacklist Xcode. It is too heavy to open plain text files
         ?? URL(filePath: "/System/Applications/TextEdit.app")
+}
+
+/// Looper's glyph with a pause sign, while Looper is disabled
+@MainActor
+private struct PausedMenuBarLabel: View {
+    @Environment(\.colorScheme) var menuColorScheme: ColorScheme
+
+    var body: some View {
+        menuBarImage(label: "\(looperAppName) is disabled", colorScheme: menuColorScheme) {
+            LooperGlyph(isPaused: true).frame(width: menuBarGlyphSize, height: menuBarGlyphSize)
+        }
+    }
 }

@@ -1,4 +1,11 @@
-# Looper
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="resources/brand/icon-animated.svg">
+    <img src="resources/brand/icon-animated-light.svg" width="160" alt="Looper icon: the ring of the radial wheel with the macOS window buttons in its center">
+  </picture>
+</p>
+
+<h1 align="center">Looper</h1>
 
 > [!WARNING]
 > **Work in progress.** Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) by Nikita Bobko
@@ -29,6 +36,12 @@ author's workflow.
 Command reference lives in [docs/commands/](./docs/commands) as Asciidoc sources (`looper-<command>.adoc`), which also generate
 the CLI `--help` output. For now, the [AeroSpace guide](https://nikitabobko.github.io/AeroSpace/guide) describes
 the shared concepts.
+
+## Brand
+
+The icon, its animated version and the one-color glyph live in [resources/brand/](./resources/brand) as SVG
+(`icon.svg`, `icon-light.svg`, `icon-animated.svg`, `icon-animated-light.svg`, `glyph.svg`). The app icon in
+`resources/Assets.xcassets` is `icon.svg` rendered at 1024 px.
 
 ## Credits
 

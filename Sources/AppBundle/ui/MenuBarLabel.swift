@@ -2,7 +2,7 @@ import Common
 import Foundation
 import SwiftUI
 
-/// Draws the `menu-bar` templates as one image: text and SF Symbols on one baseline
+/// Draws the `menu-bar` templates as one image: text, SF Symbols and Looper's glyph in one line
 @MainActor
 struct MenuBarLabel: View {
     @Environment(\.colorScheme) var menuColorScheme: ColorScheme
@@ -10,26 +10,38 @@ struct MenuBarLabel: View {
 
     var body: some View {
         let segments = viewModel.menuBar
-        let renderer = ImageRenderer(content: content(segments))
-        switch renderer.cgImage {
-            // Drawn at twice the size of the menu bar: scale 1 results in a blurry image
-            case let cgImage?: Image(cgImage, scale: 2, label: Text(segments.plainText))
-            case nil: Text(segments.plainText)
-        }
-    }
-
-    private func content(_ segments: [MenuBarSegment]) -> some View {
-        segments
-            .reduce(Text("")) { text, segment in
-                switch segment {
-                    case .text(let string): Text("\(text)\(string)")
-                    case .symbol(let name): Text("\(text)\(Image(systemName: name))")
+        menuBarImage(label: segments.plainText, colorScheme: menuColorScheme) {
+            HStack(spacing: 0) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    switch segment {
+                        case .text(let string): Text(string)
+                        case .symbol(looperGlyphSymbol): LooperGlyph().frame(width: menuBarGlyphSize, height: menuBarGlyphSize)
+                        case .symbol(let name): Image(systemName: name)
+                    }
                 }
             }
-            .font(.system(size: 28, weight: .medium))
+            .font(.system(size: menuBarFontSize, weight: .medium))
             .monospacedDigit()
-            .foregroundStyle(menuColorScheme == .dark ? Color.white : Color.black)
             .lineLimit(1)
             .fixedSize()
+        }
+    }
+}
+
+/// Points of the menu bar content, drawn at twice the size of the menu bar
+let menuBarFontSize: CGFloat = 32
+/// Looper's glyph is a bit bigger than the text, like the icons of other menu bar items
+let menuBarGlyphSize: CGFloat = 36
+
+/// The menu bar shows images: views drawn in the color of the menu bar
+@MainActor
+func menuBarImage(label: String, colorScheme: ColorScheme, @ViewBuilder content: () -> some View) -> some View {
+    let renderer = ImageRenderer(content: content().foregroundStyle(colorScheme == .dark ? Color.white : Color.black))
+    return Group {
+        switch renderer.cgImage {
+            // Scale 1 results in a blurry image
+            case let cgImage?: Image(cgImage, scale: 2, label: Text(label))
+            case nil: Text(label)
+        }
     }
 }

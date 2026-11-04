@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640">
+  <title>Looper</title>
+  <circle cx="320" cy="320" r="250" fill="none" stroke="#000000" stroke-opacity="0.35" stroke-width="90"/>
+  <circle cx="320" cy="320" r="250" fill="none" stroke="#000000" stroke-width="90" stroke-dasharray="196.35 1374.45" transform="rotate(-112.5 320 320)"/>
+  <circle cx="202" cy="320" r="46" fill="#000000"/>
+  <circle cx="320" cy="320" r="46" fill="#000000"/>
+  <circle cx="438" cy="320" r="46" fill="#000000"/>
+</svg>
