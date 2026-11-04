@@ -7,14 +7,35 @@ Looper is a single SwiftPM package: `Looper.app` (`Sources/AppBundle`), the `loo
 they share (`Sources/Common`). These docs are an [Astro Starlight](https://starlight.astro.build) site in `docs/`. The
 [architecture](/Looper/docs/architecture/) page explains how the code is organized.
 
-## Requirements
+## Setup
 
-- **Xcode**, for Swift, the macOS SDK, `actool` and `codesign`. Looper targets macOS 27 and has no Xcode project.
-- **[devenv](https://devenv.sh/)**, for the development tools: `just`, `swiftformat`, `swiftlint`, `periphery`,
-  `complgen`, Node and pnpm, and the git hooks (gitlint for Conventional Commits, Alejandra for Nix files). It only
-  provides tools; the app is never built with Nix.
+Everything needs **Xcode**, for Swift, the macOS SDK, `actool` and `codesign`. Looper targets macOS 27 and has no Xcode
+project.
+
+### With devenv (recommended)
+
+[devenv](https://devenv.sh/) provides the development tools at the same versions as CI: `just`, `swiftformat`,
+`swiftlint`, `periphery`, `complgen`, Node and pnpm, and the git hooks (gitlint for Conventional Commits, Alejandra for
+Nix files). It only provides tools; the app is never built with Nix.
 
 Run any recipe with `devenv shell -- just <recipe>`, or enter the environment with `devenv shell`.
+
+### Without devenv
+
+Install only what you need, for example with Homebrew:
+
+| To | You need | Run |
+| --- | --- | --- |
+| Build and test | Xcode | `swift build`, `swift test` |
+| Run the app | `just` | `just run` |
+| Regenerate the CLI help | Nothing else | `scripts/generate.sh` |
+| Run the full check | `just`, `swiftformat`, `swiftlint`, `periphery` | `just check` |
+| Work on the docs | `just`, Node 22, pnpm 12 | `just docs` |
+| Generate the shell completions | `just`, [`complgen`](https://github.com/adaszko/complgen) | `just completion` |
+
+Your versions may differ from the ones in `devenv.lock`, so the lint may disagree with CI, which has the last word.
+Commit messages aren't checked until a pull request, so follow
+[Conventional Commits](https://www.conventionalcommits.org).
 
 ## Recipes
 
@@ -29,6 +50,7 @@ Run any recipe with `devenv shell -- just <recipe>`, or enter the environment wi
 | `just generate` | Regenerates the CLI help from the command pages of these docs. |
 | `just format`, `just lint` | Formats the code; checks the format, SwiftLint and Periphery. |
 | `just docs` | Runs these docs locally. |
+| `just docs-build` | Builds these docs, which fails on broken internal links. |
 | `just completion` | Shell completions in `.build/completion`. |
 | `just release` | Signed release zip of the version in `VERSION`, in `.build/dist`. |
 | `just reset-permission` | Resets the Accessibility permission of the debug app. |
@@ -56,7 +78,12 @@ the permission again after each rebuild. Builds are signed with a `Looper Develo
 **Keychain Access › Certificate Assistant › Create a Certificate…**, name it `Looper Development`, with identity type
 **Self-Signed Root** and certificate type **Code Signing**.
 
-To sign with another identity, set `LOOPER_CODESIGN_IDENTITY` or pass `--identity`; the identity `-` signs ad hoc.
+To sign with another identity, set `LOOPER_CODESIGN_IDENTITY` or pass `--identity`. The identity `-` signs ad hoc, which
+needs no certificate, but macOS asks for the permission again after each rebuild:
+
+```bash
+LOOPER_CODESIGN_IDENTITY=- just run
+```
 
 ## Generated sources
 
@@ -75,8 +102,10 @@ release, set `VERSION` to the new version, run `just generate` and commit to `ma
 
 ## Continuous integration
 
+Every job gets its tools from devenv, at the version pinned in `.github/actions/setup-devenv`.
+
 - **Check** runs on pushes to `main` and on pull requests against it: `just check` on macOS, and the build of the
-  website, which fails on broken internal links.
+  website, which fails on broken internal links. Pull requests also check their commit messages.
 - **Release** runs when a push to `main` raises `VERSION`. It repeats the checks, builds the signed zip, creates the
   GitHub release with its tag, its checksum and notes from the Conventional Commits since the previous tag, and
   publishes the website. A version that isn't newer than the latest release publishes nothing.
