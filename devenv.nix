@@ -13,6 +13,9 @@
     swiftlint
     periphery
     complgen
+    # The website and docs (site/)
+    nodejs_22
+    pnpm
   ];
 
   # Git hooks.

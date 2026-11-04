@@ -14,7 +14,8 @@
 - `Sources/Macros/`, `Sources/PrivateApi/`. Swift macros and the private `_AXUIElementGetWindow` bridge.
 - `Tests/AppBundleTests/`. Unit tests. `Fixtures/axDumps/` holds recorded accessibility dumps of real windows.
 - `resources/`. App resources: asset catalog and `default-config.toml`.
-- `docs/commands/`. Asciidoc sources of each command; `scripts/generate.sh` turns their synopses into CLI help.
+- `site/`. The website and docs (Astro Starlight). The command pages in `site/src/content/docs/docs/commands/` are also
+  the source of the CLI help: `scripts/generate.sh` turns their synopses and descriptions into Swift.
 - `docs/config-examples/`. Example configurations.
 - `scripts/`. Build scripts (`generate.sh`, `bundle.sh`, `release.sh`) and the shell completion grammar.
 
@@ -40,7 +41,7 @@ Sources/AppBundle/command/
 Sources/Common/cmdArgs/
 
 Command checklist:
-- [ ] Documentation in `docs/commands/looper-*.adoc`, then `just generate`
+- [ ] A page in `site/src/content/docs/docs/commands/`, then `just generate`
 - [ ] Do `--window-id` and/or `--workspace` flags make sense for the command?
 - [ ] Shell completion `scripts/completion/grammar.bnf`
 

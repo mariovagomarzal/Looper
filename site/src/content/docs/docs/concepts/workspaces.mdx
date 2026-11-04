@@ -1,0 +1,48 @@
+---
+title: Workspaces, monitors and Spaces
+description: How workspaces relate to monitors and to native macOS Spaces.
+---
+
+import Video from '../../../../components/Video.astro';
+
+A **workspace** is a named set of windows with its own [tree](/Looper/docs/concepts/tree/). Each monitor shows one workspace at a time:
+switching workspace hides the windows of the previous one and shows the new one's.
+
+```bash
+looper workspace 2          # go to workspace 2
+looper workspace next       # the next workspace of the monitor
+looper move-node-to-workspace 3
+```
+
+Workspaces are created when you go to them and disappear when they're empty and not visible, unless they're listed in
+[`persistent-workspaces`](/Looper/docs/configuration/#general).
+
+<Video
+	name="spaces"
+	title="Workspaces per Space and monitor"
+	description="Switching native Spaces with Mission Control, each with its own Looper workspaces, and moving a workspace to the other monitor."
+/>
+
+## Monitors
+
+Every monitor has its own workspaces. The commands that take a monitor accept a direction, `next` and `prev`,
+`focused`, `pointer` (the monitor under the mouse pointer) or a pattern: a 1-based number from left to right, `main`,
+`secondary` or part of the monitor's name.
+
+- [`focus-monitor`](/Looper/docs/commands/focus-monitor/) focuses another monitor.
+- [`move-node-to-monitor`](/Looper/docs/commands/move-node-to-monitor/) sends the window there.
+- [`move-workspace-to-monitor`](/Looper/docs/commands/move-workspace-to-monitor/) and
+  [`swap-workspace-with-monitor`](/Looper/docs/commands/swap-workspace-with-monitor/) move whole workspaces.
+- Many commands take `--monitor`, to act on another monitor's visible workspace without focusing it.
+
+## Native Spaces
+
+macOS can have several **Spaces** (desktops) per monitor. Looper gives every Space its own workspaces: when you switch
+Space with Mission Control, a swipe or a shortcut, the monitor shows the workspaces of that Space.
+
+Looper reads Spaces, but never moves windows between them, and never creates or removes them. A window moved to another
+Space with Mission Control joins the workspaces of that Space.
+
+:::tip
+Turn on **Displays have separate Spaces** (System Settings › Desktop & Dock) when you use several monitors.
+:::

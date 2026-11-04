@@ -1,6 +1,0 @@
-Act on the visible workspace of the specified monitor, or, together with `--workspace`, look the workspace name up
-among the workspaces of that monitor.
-`<monitor>` possible values: `(left|down|up|right|next|prev|focused|pointer|wheel|<monitor-pattern>)`.
-Directions, `next` and `prev` are relative to the focused monitor.
-`wheel` is the monitor that was under the mouse pointer when the wheel opened, and is only valid in wheel actions.
-See `looper-focus-monitor` for monitor patterns.

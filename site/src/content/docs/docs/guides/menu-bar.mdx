@@ -1,0 +1,112 @@
+---
+title: The menu bar
+description: Design what Looper's menu bar item shows with templates, variables, filters and SF Symbols.
+---
+
+import Video from '../../../../components/Video.astro';
+
+Looper's menu bar item shows the active mode and your workspaces. What it shows, and how, is written as **templates**.
+
+<Video
+	name="menu-bar"
+	title="The menu bar"
+	description="Editing the menu-bar templates in the config and saving: the menu bar item changes on the spot, from squares with numbers to symbols for named workspaces."
+	
+/>
+
+## Templates
+
+A template mixes:
+
+- **Text**, shown as written.
+- **Variables**, like `%{workspace}`.
+- **SF Symbols**, between colons: `:1.square.fill:`. The name can contain variables: `:%{workspace}.square:`.
+  The symbol `:looper:` is Looper's own glyph. Write `::` for a colon.
+
+**Filters** change a variable, one after another: `%{mode|initial|upper}` is the first letter of the mode, uppercased.
+The filters are `upper`, `lower`, `capitalize` and `initial`.
+
+A **list** of templates is a list of alternatives. The first one is shown that has all its symbols (a workspace called
+`web` has no `web.square` symbol) and that has something to show (a template whose variables are all empty is
+skipped):
+
+```toml
+menu-bar.workspace.focused = [':%{workspace}.square.fill:', '[%{workspace}]']
+```
+
+An empty variable takes a space next to it along, so `'%{mode} %{workspaces}'` leaves no gap without a mode.
+
+## What goes where
+
+```toml
+menu-bar.format = ['%{mode} %{workspaces}', ':looper:']
+menu-bar.mode = [':%{mode|initial}.circle:', '(%{mode|initial|upper})']
+menu-bar.monitor-separator = ' │ '
+menu-bar.workspace.focused = [':%{workspace}.square.fill:', '[%{workspace}]']
+menu-bar.workspace.visible = [':%{workspace}.square:', '%{workspace}']
+```
+
+These are the defaults.
+
+### `format`
+
+The whole item, left to right. Variables:
+
+- `%{mode}`: the active mode, drawn with `menu-bar.mode`.
+- `%{workspaces}`: the workspaces of every monitor, drawn with `menu-bar.workspace`.
+- `%{app-name}`: the app of the focused window.
+
+By default, Looper's glyph shows only when there's nothing else to show.
+
+### `mode`
+
+A template for every mode but `main`, or a table per mode, with `'*'` for the rest of the modes but `main`. Modes
+without a template aren't shown. Variable: `%{mode}`, its name.
+
+```toml
+menu-bar.mode = { main = ':house:', resize = ':arrow.up.left.and.arrow.down.right:', '*' = '%{mode|upper}' }
+```
+
+### `workspace`
+
+How each workspace looks in each state:
+
+- `focused`: the focused workspace.
+- `visible`: visible on another monitor.
+- `occupied`: has windows, but isn't visible.
+- `empty`: no windows.
+
+Workspaces in a state without a template aren't shown. Setting any state replaces all the defaults, so set every state
+you want to see. Variables: `%{workspace}` (its name) and `%{monitor}`.
+
+The workspaces of a monitor are separated by a space, and `menu-bar.monitor-separator` goes between monitors.
+
+### `named-workspace`
+
+Templates for single workspaces, by name. A template replaces the look of the workspace in the states that show it, and an empty template
+(`''`) hides it. A table sets it per state, and the other states use `menu-bar.workspace`:
+
+```toml
+[menu-bar.named-workspace]
+web = ':globe:'
+mail = { focused = ':envelope.fill:', empty = ':envelope:' }
+secret = ''
+```
+
+## Examples
+
+Letters in circles, with every workspace that has windows:
+
+```toml
+[menu-bar.workspace]
+focused = ':%{workspace}.circle.fill:'
+visible = ':%{workspace}.circle:'
+occupied = '%{workspace}'
+```
+
+The mode in words, and the focused app:
+
+```toml
+menu-bar.format = '%{mode} %{workspaces} | %{app-name}'
+menu-bar.mode = '%{mode|upper}'
+```

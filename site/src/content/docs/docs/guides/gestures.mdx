@@ -1,0 +1,57 @@
+---
+title: Trackpad gestures
+description: Bind three- and four-finger swipes and taps to commands, per mode and with modifiers.
+---
+
+import Video from '../../../../components/Video.astro';
+
+Trackpad gestures are bound like keys, in a `gesture` table next to each mode's `binding` table:
+
+```toml
+[mode.main.gesture]
+swipe-3-left = 'workspace --wrap-around prev'
+swipe-3-right = 'workspace --wrap-around next'
+swipe-3-up = 'layout accordion tiles'
+alt-swipe-3-left = 'move left'
+alt-swipe-3-right = 'move right'
+tap-3 = 'focus-back-and-forth'
+tap-4 = 'layout floating tiling'
+```
+
+<Video
+	name="gestures"
+	title="Trackpad gestures"
+	description="A three-finger swipe changes workspace, a swipe with alt held moves the window, and a four-finger tap toggles the layout."
+/>
+
+## Gestures
+
+- `swipe-<fingers>-<direction>`: fingers moving together `left`, `right`, `up` or `down`.
+- `tap-<fingers>`: fingers touching the trackpad briefly without moving.
+
+Gestures use 3 or 4 fingers. Each gesture runs its commands once, until all the fingers lift.
+
+Hold modifiers while you swipe or tap to run another binding: `alt-swipe-3-left`, `lcmd-tap-4`. Modifiers work like in
+[key bindings](/Looper/docs/guides/key-bindings/), sides included.
+
+## Distance
+
+The `gesture-swipe-distance` key sets how far the fingers must move for a swipe, in percent of the trackpad (15 by default):
+
+```toml
+gesture-swipe-distance = 20
+```
+
+## macOS gestures
+
+Looper can't block the gestures of macOS. When macOS also uses a gesture, both run. Turn off the macOS gestures that
+use the same fingers in **System Settings › Trackpad › More Gestures** (and **three finger drag**, in **Accessibility ›
+Pointer Control › Trackpad Options**).
+
+While you swipe with a number of fingers that the active mode binds, Looper keeps the scroll events that macOS
+generates from reaching the app under the pointer, so the content doesn't scroll along.
+
+:::note
+Looper reads the trackpad through a private macOS framework. If a future macOS removes it, gestures stop working and
+the rest of Looper keeps going.
+:::

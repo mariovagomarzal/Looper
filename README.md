@@ -29,9 +29,8 @@ author's workflow.
 | Config | `~/.looper.toml` or `${XDG_CONFIG_HOME}/looper/looper.toml` |
 | Environment variables | `LOOPER_WINDOW_ID`, `LOOPER_WORKSPACE`, `LOOPER_FOCUSED_WORKSPACE`, `LOOPER_PREV_WORKSPACE` |
 
-Command reference lives in [docs/commands/](./docs/commands) as Asciidoc sources (`looper-<command>.adoc`), which also generate
-the CLI `--help` output. For now, the [AeroSpace guide](https://nikitabobko.github.io/AeroSpace/guide) describes
-the shared concepts.
+Documentation: [mariovagomarzal.github.io/Looper](https://mariovagomarzal.github.io/Looper/docs/), built from
+[site/](./site). The command pages there also generate the CLI `--help` output.
 
 ## Brand
 

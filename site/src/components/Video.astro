@@ -1,0 +1,90 @@
+---
+// A looping, muted recording from public/videos/<name>.mp4. Until the file exists, a placeholder that says which
+// recording goes here.
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+interface Props {
+	name: string;
+	title: string;
+	/** What the recording shows, for the placeholder and for screen readers */
+	description: string;
+	/** Width / height */
+	aspect?: string;
+}
+
+const { name, title, description, aspect = '16 / 10' } = Astro.props;
+const file = fileURLToPath(new URL(`../../public/videos/${name}.mp4`, import.meta.url));
+const exists = existsSync(file);
+const src = `${import.meta.env.BASE_URL}videos/${name}.mp4`;
+---
+
+<figure class="looper-video not-content" style={`aspect-ratio: ${aspect}`}>
+	{
+		exists ? (
+			<video src={src} autoplay muted loop playsinline aria-label={description} />
+		) : (
+			<div class="placeholder" role="img" aria-label={`Video placeholder: ${description}`}>
+				<svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+					<circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5" />
+					<path d="M10 8.5v7l6-3.5z" fill="currentColor" />
+				</svg>
+				<strong>{title}</strong>
+				<span>{description}</span>
+				<code>public/videos/{name}.mp4</code>
+			</div>
+		)
+	}
+</figure>
+
+<style>
+	.looper-video {
+		container-type: inline-size;
+		margin: 1.5rem 0;
+		width: 100%;
+		border-radius: 14px;
+		overflow: hidden;
+		background: #15171d;
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+	}
+	video {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.placeholder {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 1.5rem;
+		text-align: center;
+		color: #8f97aa;
+		background:
+			radial-gradient(circle at 50% 40%, rgba(52, 120, 246, 0.18), transparent 60%),
+			repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 12px, transparent 12px 24px);
+	}
+	.placeholder strong {
+		color: #e6e8ee;
+		font-size: 1.05rem;
+	}
+	.placeholder span {
+		max-width: 34rem;
+		font-size: 0.9rem;
+		line-height: 1.45;
+	}
+	.placeholder code {
+		font-size: 0.75rem;
+		opacity: 0.7;
+	}
+	/* In small cards, the title and the file name are enough */
+	@container (max-width: 420px) {
+		.placeholder span {
+			display: none;
+		}
+	}
+</style>

@@ -1,0 +1,39 @@
+---
+title: Introduction
+description: What Looper is, and where to go next in these docs.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import Video from '../../../components/Video.astro';
+
+Looper is a tiling window manager for macOS. It arranges your windows in a tree of containers as they open, and lets
+you move them around with key bindings, a radial wheel under the pointer, trackpad gestures, the mouse or the `looper`
+command line.
+
+Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) and keeps its tree-based tiling, its commands
+and its plain-text configuration. On top of that it adds:
+
+- **The radial wheel**, modeled on the radial menu of [Loop](https://github.com/MrKai77/Loop): hold a key, point in a
+  direction and release to run a command, with a preview of where the windows will land, profiles, context-aware
+  variants and icons.
+- **Trackpad gestures**: three- and four-finger swipes and taps bound to commands, per mode, like keys.
+- **Workspaces per native Space**: every monitor and every macOS Space keeps its own workspaces.
+- **A configurable menu bar**, written as templates with variables, filters and SF Symbols.
+- **Side-specific modifiers** (`lalt`, `ralt`…) and key bindings that follow your keyboard layout.
+- Commands that cross monitors, and moving and resizing floating windows from the keyboard.
+
+<Video
+	name="hero"
+	title="Looper in 20 seconds"
+	description="A tour of a real desktop: windows tile as they open, the wheel moves one with a preview, a three-finger swipe changes workspace and the menu bar follows along."
+	aspect="16 / 9"
+/>
+
+## Where to go next
+
+<CardGrid>
+	<LinkCard title="Installation" description="Build and install Looper, and grant it permission." href="/Looper/docs/installation/" />
+	<LinkCard title="First steps" description="Your config file and the default bindings." href="/Looper/docs/first-steps/" />
+	<LinkCard title="The tree" description="How Looper arranges windows." href="/Looper/docs/concepts/tree/" />
+	<LinkCard title="The radial wheel" description="Looper's signature feature, step by step." href="/Looper/docs/guides/wheel/" />
+</CardGrid>

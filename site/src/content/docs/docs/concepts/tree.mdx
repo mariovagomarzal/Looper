@@ -1,0 +1,75 @@
+---
+title: The tree
+description: How Looper arranges windows in a tree of containers, layouts and orientations.
+---
+
+import Video from '../../../../components/Video.astro';
+
+Every workspace holds a **tree**. Its leaves are windows, and every other node is a **container** that arranges its
+children side by side. When a window opens, it becomes a new leaf next to the focused window, and every window in the
+container gets its share of the space.
+
+<Video
+	name="tiling"
+	title="Tiling from the keyboard"
+	description="Opening three windows that tile on their own, moving focus and windows with the keyboard, resizing, and switching a container to an accordion."
+/>
+
+## Layouts and orientations
+
+Each container has a **layout** and an **orientation**:
+
+| | Horizontal | Vertical |
+| --- | --- | --- |
+| **Tiles** | Children side by side, left to right (`h_tiles`) | Children stacked top to bottom (`v_tiles`) |
+| **Accordion** | Children on top of each other, offset left to right (`h_accordion`) | Offset top to bottom (`v_accordion`) |
+
+In an accordion, the focused window covers almost the whole container and its neighbors peek out on the sides by
+[`accordion-padding`](/Looper/docs/configuration/#layout) points, so you can see and click them.
+
+Change the layout of the focused window's container with [`layout`](/Looper/docs/commands/layout/):
+
+```bash
+looper layout tiles horizontal vertical   # tiles, toggling the orientation
+looper layout accordion tiles             # toggle between accordion and tiles
+```
+
+The workspace's root container starts as [`default-root-container-layout`](/Looper/docs/configuration/#layout)
+and [`default-root-container-orientation`](/Looper/docs/configuration/#layout).
+
+## Moving through the tree
+
+- [`focus`](/Looper/docs/commands/focus/) moves the focus to the window in a direction.
+- [`move`](/Looper/docs/commands/move/) moves the window in a direction. At the edge of a container it leaves the container;
+  where there's nothing in that direction, it creates a new container.
+- [`swap`](/Looper/docs/commands/swap/) swaps the window with its neighbor.
+- [`join-with`](/Looper/docs/commands/join-with/) puts the window and its neighbor in a new container with the opposite
+  orientation.
+- [`resize`](/Looper/docs/commands/resize/) and [`balance-sizes`](/Looper/docs/commands/balance-sizes/) change how the space is
+  shared.
+- [`flatten-workspace-tree`](/Looper/docs/commands/flatten-workspace-tree/) undoes all the nesting of a workspace.
+
+## Normalization
+
+Two normalizations keep the tree simple. Both are on by default:
+
+- [`enable-normalization-flatten-containers`](/Looper/docs/configuration/#layout): a container with a single child is
+  removed, and the child takes its place.
+- [`enable-normalization-opposite-orientation-for-nested-containers`](/Looper/docs/configuration/#layout): a container
+  inside another one always has the opposite orientation. Nesting two horizontal containers would look exactly like a
+  single one.
+
+## Floating windows
+
+A window can also **float**: it leaves the tree and keeps the position and size you give it. Dialogs and other
+windows that can't be resized float on their own. Toggle a window with `looper layout floating tiling`.
+
+Floating windows move and resize with [`move`](/Looper/docs/commands/move/) and [`resize`](/Looper/docs/commands/resize/) too, by a
+distance, and [`place`](/Looper/docs/commands/place/) puts them in a region of the monitor, like the left half. See
+[Mouse and floating windows](/Looper/docs/guides/mouse/).
+
+## Fullscreen
+
+[`fullscreen`](/Looper/docs/commands/fullscreen/) makes a window fill its workspace without leaving the tree.
+[`macos-native-fullscreen`](/Looper/docs/commands/macos-native-fullscreen/) uses the macOS full screen instead, which moves the
+window to a Space of its own.

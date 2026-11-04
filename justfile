@@ -4,7 +4,7 @@ debug_app := ".build/bundle/Looper-Debug.app"
 default:
     @just --list
 
-# Regenerate the CLI help and build metadata sources from docs/commands.
+# Regenerate the CLI help and build metadata sources from the command pages of the docs.
 generate:
     scripts/generate.sh
 
@@ -70,3 +70,7 @@ reset-permission:
 # Remove build products.
 clean:
     rm -rf .build
+
+# Run the website and docs locally.
+site:
+    cd site && pnpm install --frozen-lockfile && pnpm dev

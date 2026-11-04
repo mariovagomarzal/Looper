@@ -45,7 +45,7 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
     alt-shift-space = 'layout floating tiling' # 'floating toggle' in i3
 
     # Not supported, because this command is redundant in Looper mental model.
-    # See: https://nikitabobko.github.io/AeroSpace/guide#floating-windows
+    # See: https://mariovagomarzal.github.io/Looper/docs/concepts/tree/#floating-windows
     #alt-space = 'focus toggle_tiling_floating'
 
     # `focus parent`/`focus child` are not yet supported, and it's not clear whether they

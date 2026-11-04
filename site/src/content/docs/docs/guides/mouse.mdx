@@ -1,0 +1,59 @@
+---
+title: Mouse and floating windows
+description: Rearrange tiled windows with the mouse, and move and resize floating windows from the keyboard.
+---
+
+import Video from '../../../../components/Video.astro';
+
+## Tiled windows
+
+- **Drag a window onto another** to swap them.
+- **Resize a window by dragging its edge**, and its neighbors take or give the space.
+
+A click that doesn't move the pointer is just a click: Looper only takes over when you actually drag.
+
+<Video
+	name="mouse"
+	title="Mouse"
+	description="Dragging a tiled window onto another swaps them; a floating window moves and resizes with key bindings."
+/>
+
+## Floating windows
+
+Floating windows keep the position and size you give them. Besides the mouse, they move and resize with the same
+commands as tiled windows, by a distance:
+
+```toml
+[mode.main.binding]
+alt-shift-h = 'move left'          # 5% of the monitor by default
+alt-shift-l = 'move right 40'      # 40 points
+alt-minus = 'resize smart -50'     # 50 points smaller, keeping the center
+alt-equal = 'resize smart +50'
+```
+
+The `move` command stops at the edge of the monitor; with `--boundaries all-monitors-outer-frame` it continues to the monitor
+beyond. [`place`](/Looper/docs/commands/place/) puts a floating window in a region of its monitor:
+
+```bash
+looper place left-half
+looper place center-third
+looper place maximize
+looper place rect 10 10 80 80   # x, y, width and height, in percent
+```
+
+## Focus follows mouse
+
+```toml
+focus-follows-mouse.enabled = true
+```
+
+With it, the window under the pointer gets the focus as the pointer moves over it.
+
+## Moving the pointer
+
+[`move-mouse`](/Looper/docs/commands/move-mouse/) moves the pointer, for example to the center of the focused window. The
+default config moves it to the newly focused monitor:
+
+```toml
+on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+```

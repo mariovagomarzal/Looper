@@ -1,0 +1,73 @@
+/* Looper's colors on Starlight: graphite grays and the blue of the wheel */
+
+:root {
+	--sl-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+	--sl-font-mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+
+	--sl-color-accent-low: #10234a;
+	--sl-color-accent: #3478f6;
+	--sl-color-accent-high: #a3c8ff;
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #e6e8ee;
+	--sl-color-gray-2: #c3c7d1;
+	--sl-color-gray-3: #8f97aa;
+	--sl-color-gray-4: #5b6175;
+	--sl-color-gray-5: #34373f;
+	--sl-color-gray-6: #1c1e25;
+	--sl-color-black: #121317;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #d6e4fd;
+	--sl-color-accent: #2f6ae0;
+	--sl-color-accent-high: #143f91;
+	--sl-color-white: #10162a;
+	--sl-color-gray-1: #1c2233;
+	--sl-color-gray-2: #343b4f;
+	--sl-color-gray-3: #5b6478;
+	--sl-color-gray-4: #8f97aa;
+	--sl-color-gray-5: #c9ceda;
+	--sl-color-gray-6: #eef1f6;
+	--sl-color-gray-7: #f7f8fb;
+	--sl-color-black: #ffffff;
+}
+
+/* A narrower table of contents: the content takes the room and stays centered */
+:root {
+	--sl-content-width: 48rem;
+	--looper-toc-width: 16rem;
+}
+@media (min-width: 72rem) {
+	.right-sidebar-container {
+		width: var(--looper-toc-width);
+	}
+	[data-has-sidebar][data-has-toc] .main-pane {
+		--sl-content-margin-inline: auto;
+		width: calc(100% - var(--looper-toc-width));
+	}
+}
+
+/* Inline code and keys as rounded chips */
+.sl-markdown-content :not(pre) > code:not(:where(.not-content *)) {
+	padding: 0.1em 0.38em;
+	border-radius: 0.38rem;
+	border: 1px solid var(--sl-color-hairline-light);
+	background: color-mix(in srgb, var(--sl-color-gray-6) 70%, transparent);
+	font-size: 0.86em;
+}
+.sl-markdown-content kbd:not(:where(.not-content *)) {
+	padding: 0.08em 0.45em;
+	border-radius: 0.38rem;
+	border: 1px solid var(--sl-color-hairline-light);
+	border-bottom-width: 2px;
+	background: var(--sl-color-gray-6);
+	font-family: var(--sl-font);
+	font-size: 0.82em;
+}
+
+/* Tables of options: compact */
+.sl-markdown-content table td,
+.sl-markdown-content table th {
+	font-size: var(--sl-text-sm);
+	vertical-align: top;
+}

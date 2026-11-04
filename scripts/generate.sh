@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerates the Swift sources derived from docs/commands/*.adoc and the build metadata.
+# Regenerates the Swift sources derived from the command pages of the docs and the build metadata.
 #
 # Usage: scripts/generate.sh [--build-version <version>] [--git-hash]
 set -euo pipefail
@@ -15,9 +15,14 @@ while test $# -gt 0; do
     esac
 done
 
-docs=docs/commands
+docs=site/src/content/docs/docs/commands
 
-# Per-command help, extracted from the synopsis of each man page source.
+# The lines of the 'text' block under the Synopsis heading of a command page
+synopsis() {
+    awk '/^## Synopsis/ { inside = 1; next } inside && /^```text/ { block = 1; next } block && /^```/ { exit } block { print }' "$1"
+}
+
+# Per-command help, from the synopsis of each command page.
 help_file=Sources/Common/cmdHelpGenerated.swift
 cmd_prefix="looper"
 usage_prefix="   USAGE:"
@@ -26,16 +31,15 @@ strip_prefix="   "
 triple_quote='"""'
 
 cat > "$help_file" << EOF
-// FILE IS GENERATED FROM $docs/looper-*.adoc files
+// FILE IS GENERATED FROM $docs/*.md files
 // TO REGENERATE THE FILE RUN scripts/generate.sh
 
 EOF
 
-for file in "$docs"/looper-*.adoc; do
-    subcommand=$(basename "$file" | sed 's/^looper-//' | sed 's/\.adoc$//' | sed 's/-/_/g')
-    sed -n -E '/tag::synopsis/, /end::synopsis/ p' "$file" |
-        sed '1d' |
-        sed '$d' |
+for file in "$docs"/*.md; do
+    test "$(basename "$file")" = index.md && continue
+    subcommand=$(basename "$file" .md | sed 's/-/_/g')
+    synopsis "$file" |
         sed '/^$/ d' |
         sed "1   s/^$cmd_prefix/$usage_prefix/" |
         sed "2,$ s/^$cmd_prefix/$or_prefix/" |
@@ -45,20 +49,20 @@ for file in "$docs"/looper-*.adoc; do
         sed '2,$ s/^/    /' >> "$help_file"
 done
 
-# Subcommand list for `looper --help`.
+# Subcommand list for `looper --help`, from the description of each command page.
 entries() {
-    for file in "$docs"/looper-*.adoc; do
-        if grep -q 'exec-and-forget' <<< "$file"; then
+    for file in "$docs"/*.md; do
+        subcommand=$(basename "$file" .md)
+        if test "$subcommand" = index || test "$subcommand" = exec-and-forget; then
             continue
         fi
-        subcommand=$(basename "$file" | sed 's/^looper-//' | sed 's/\.adoc$//')
-        desc="$(grep :manpurpose: "$file" | sed -E 's/:manpurpose: //')"
+        desc=$(sed -n -E 's/^description: "(.*)"$/\1/p' "$file" | head -1)
         echo "    [\"  $subcommand\", \"$desc\"],"
     done
 }
 
 cat > Sources/Cli/subcommandDescriptionsGenerated.swift << EOF
-// FILE IS GENERATED FROM $docs/looper-*.adoc files
+// FILE IS GENERATED FROM $docs/*.md files
 // TO REGENERATE THE FILE RUN scripts/generate.sh
 
 let subcommandDescriptions = [

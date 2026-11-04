@@ -5,7 +5,7 @@
 - Xcode (the app). It provides Swift, the macOS SDK, `actool` and `codesign`. Looper targets macOS 27 and is built
   with the Swift toolchain bundled with Xcode; the project contains no Xcode project file.
 - [devenv](https://devenv.sh/) for the development tools: `just`, `swiftformat`, `swiftlint`, `periphery`,
-  `complgen` and the git hooks (gitlint for Conventional Commits, Alejandra for Nix files).
+  `complgen`, Node and pnpm (for the website), and the git hooks (gitlint for Conventional Commits, Alejandra for Nix files).
   devenv only provides tools; the app is never built with Nix.
 
 Enter the environment with `devenv shell`, or run a single command with `devenv shell -- just <recipe>`.
@@ -36,7 +36,8 @@ Run `just` to list them all.
 | `just app` | Debug bundle `.build/bundle/Looper-Debug.app` and the `looper` CLI next to it |
 | `just run` | Builds the debug bundle and (re)launches it |
 | `just cli <args>` | Runs the debug CLI |
-| `just generate` | Regenerates CLI help from `docs/commands/*.adoc` |
+| `just generate` | Regenerates CLI help from the command pages of the docs |
+| `just site` | Runs the website and docs locally |
 | `just format` / `just lint` | SwiftFormat; SwiftFormat check, SwiftLint and Periphery |
 | `just check` | Generated sources up to date, strict build, tests and lint |
 | `just completion` | zsh, fish and bash completions in `.build/completion` |
@@ -51,7 +52,8 @@ debug app re-enables it.
 ## Generated sources
 
 `Sources/Common/cmdHelpGenerated.swift` and `Sources/Cli/subcommandDescriptionsGenerated.swift` are generated
-from `docs/commands/*.adoc` by `scripts/generate.sh` and committed. `versionGenerated.swift` and
+from the command pages of the docs (`site/src/content/docs/docs/commands/*.md`: the `description` and the `text` block
+under **Synopsis**) by `scripts/generate.sh` and committed. `versionGenerated.swift` and
 `gitHashGenerated.swift` hold `0.0.0-SNAPSHOT`/`SNAPSHOT` in the repository; `just release` fills them in
 temporarily and restores them afterwards.
 

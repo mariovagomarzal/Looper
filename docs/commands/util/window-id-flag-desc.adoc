@@ -1,6 +1,0 @@
-Act on the specified window instead of the focused window.
-`<window-id>` is a window ID, or one of:
-`focused` (the focused window),
-`pointer` (the window under the mouse pointer),
-`wheel` (the window that was under the mouse pointer when the wheel opened; only valid in wheel actions and conditions).
-The flag takes precedence over `LOOPER_WINDOW_ID` and `LOOPER_WORKSPACE` https://nikitabobko.github.io/AeroSpace/guide#environment-variables[environment variables].

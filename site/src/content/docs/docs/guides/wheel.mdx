@@ -1,0 +1,167 @@
+---
+title: The radial wheel
+description: Hold a key, point in a direction and release to run a command, with previews, profiles and variants.
+---
+
+import Video from '../../../../components/Video.astro';
+
+Hold <kbd>fn</kbd> and a wheel opens under the mouse pointer. Move the pointer towards one of its eight sectors, or
+leave it in the middle for the center, and release <kbd>fn</kbd>: Looper runs the action bound there.
+
+<Video
+	name="wheel"
+	title="The wheel"
+	description="Holding fn over a window opens the wheel. The pointer selects left, the preview outlines the left half and the center shows its icon; releasing moves the window there."
+/>
+
+The wheel does nothing until you bind actions to it.
+
+## Actions
+
+Bind actions per **slot**: `center`, `up`, `down`, `left`, `right`, `up-left`, `up-right`, `down-left` and
+`down-right`. An action is any command, or several joined by [the shell](/Looper/docs/concepts/commands/#loopers-shell):
+
+```toml
+[wheel.profiles.default.actions]
+left = 'move left --window-id wheel'
+right = 'move right --window-id wheel'
+up = 'layout accordion tiles --window-id wheel'
+down = 'fullscreen --window-id wheel'
+center = 'balance-sizes'
+up-left = 'exec-and-forget open -a Ghostty'
+```
+
+The flag `--window-id wheel` means **the window that was under the pointer when the wheel opened**. Without it, commands act on the
+focused window, like everywhere else. Likewise, `--monitor wheel` is the monitor under the pointer.
+
+### Finishing with a click
+
+Releasing the key is one way to finish. Clicking is another: while the wheel is open, a left, right or other click
+finishes the gesture with the selected slot. A table binds each way separately:
+
+```toml
+[wheel.profiles.default.actions]
+left = { release = 'move left --window-id wheel', left-click = 'swap left --window-id wheel', right-click = 'join-with left --window-id wheel' }
+```
+
+The keys are `release`, `left-click`, `right-click` and `other-click`. A way of finishing without an action does
+nothing. Pressing any other key, or releasing without moving the pointer, closes the wheel without running anything.
+
+## Previews
+
+While a slot is selected, the wheel outlines where its release action would put the windows:
+
+- With `target`, the default, it outlines the window the action acts on.
+- With `all`, it also outlines every other window the action moves.
+- With `off`, it shows nothing.
+
+```toml
+wheel.preview = 'all'
+wheel.preview-corner-radius = 10
+wheel.preview-border-width = 2
+```
+
+Previews work for [`place`](/Looper/docs/commands/place/), [`fullscreen`](/Looper/docs/commands/fullscreen/) and
+[`focus`](/Looper/docs/commands/focus/), for the commands that rearrange windows (`move`, `swap`, `layout`, `resize`,
+`balance-sizes`, `flatten-workspace-tree`, `join-with`, `split`) and for the ones that move them between monitors and
+workspaces, alone or joined with `&&`, `||` and `;`. Looper computes them by running the commands on a copy of the tree,
+without touching any window. Other commands have no preview.
+
+A slot can set its own: `left = { release = 'move left', preview = 'off' }`.
+
+## Icons
+
+The center of the wheel shows an SF Symbol for the release action of the selected slot, chosen from its first command:
+an arrow for `move left`, stacked windows for `layout accordion`, a terminal for `exec-and-forget`… Pick another
+symbol, or hide it, per slot:
+
+```toml
+[wheel.profiles.default.actions]
+up-left = { release = 'exec-and-forget open -a Ghostty', icon = 'apple.terminal' }
+center = { release = 'balance-sizes', icon = '' }
+```
+
+Set `wheel.icons = false` to turn the icons off.
+
+## Style
+
+```toml
+wheel.size = 100            # diameter, from 60 to 240 points
+wheel.thickness = 22        # ring, from 10 to 60 points
+wheel.corner-radius = 100   # 0 is a square, 100 a circle
+wheel.accent-color = 'system'
+wheel.haptics = true
+```
+
+The accent color is `'system'` (the macOS accent color), `'wallpaper'` (the most vibrant color of the wallpaper under the
+pointer), a color like `'#3478f6'`, or two colors for a gradient: `['#3478f6', '#a3c8ff']`.
+
+## Profiles
+
+A **profile** is a set of actions with its own style. Hold different modifiers to open different profiles:
+
+```toml
+wheel.triggers.fn = 'default'
+wheel.triggers.fn-shift = 'workspaces'
+
+[wheel.profiles.workspaces]
+accent-color = '#e8a33d'
+corner-radius = 60
+[wheel.profiles.workspaces.actions]
+left = 'workspace prev --monitor wheel'
+right = 'workspace next --monitor wheel'
+```
+
+<Video
+	name="wheel-profiles"
+	title="Profiles"
+	description="The wheel opens with fn; pressing shift on top switches it to another profile, which changes color and shape, and releasing shift goes back."
+/>
+
+While the wheel is open, it follows the held modifiers: press <kbd>shift</kbd> on top of <kbd>fn</kbd> and the
+`workspaces` profile takes over, release it and you're back to `default`. Since fingers never release several keys at
+exactly the same time, a switch caused by releasing a modifier waits
+[`wheel.release-delay`](/Looper/docs/configuration/#the-wheel) milliseconds, in case the rest follow.
+
+Triggers are modifiers only: `fn`, `cmd`, `alt`, `ctrl`, `shift` and their sided variants (`lalt`, `ralt`…).
+
+Every profile starts from the style of `default`, and overrides it key by key. With `extends`, a profile also
+inherits the actions of another profile, and overrides them slot by slot; `''` removes an inherited action:
+
+```toml
+[wheel.profiles.swap]
+extends = 'default'
+accent-color = '#ff6b6b'
+[wheel.profiles.swap.actions]
+left = 'swap left --window-id wheel'
+right = 'swap right --window-id wheel'
+center = ''
+```
+
+## Variants
+
+A profile with `extends` and `if` is a **variant**: when its base profile opens and the condition succeeds, the variant
+opens instead. Conditions use [`test` and `test-not`](/Looper/docs/concepts/commands/#conditions), which check the focused
+window unless they pass `--window-id wheel`:
+
+```toml
+[wheel.profiles.accordion]
+extends = 'default'
+if = 'test --window-id wheel %{window-layout} = h_accordion || test --window-id wheel %{window-layout} = v_accordion'
+accent-color = '#af52de'
+[wheel.profiles.accordion.actions]
+center = 'layout tiles --window-id wheel'
+```
+
+<Video
+	name="wheel-variants"
+	title="Variants"
+	description="The same fn key opens a purple wheel over an accordion and a green one over a floating window, each with actions for that kind of window."
+/>
+
+The first variant in the file whose condition succeeds wins, and variants can have variants of their own.
+
+## Opening it from a command
+
+[`wheel open [<profile>]`](/Looper/docs/commands/wheel/) opens the wheel under the pointer, for example from a key binding or a
+gesture. Finish it with a click, or close it with `wheel cancel`.

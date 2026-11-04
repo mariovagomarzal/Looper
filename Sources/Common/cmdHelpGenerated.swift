@@ -1,4 +1,4 @@
-// FILE IS GENERATED FROM docs/commands/looper-*.adoc files
+// FILE IS GENERATED FROM site/src/content/docs/docs/commands/*.md files
 // TO REGENERATE THE FILE RUN scripts/generate.sh
 
 let balance_sizes_help_generated = """
