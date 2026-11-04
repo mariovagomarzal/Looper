@@ -33,16 +33,19 @@ struct ReloadConfigResult {
 
     var errors = parseResult.errors.map { $0.description(.error) }
     var warnings = parseResult.warnings.map { $0.description(.warning) }
-    let containsWarnings = !parseResult.warnings.isEmpty
+    if parseResult.allowReloadConfig && !args.dryRun, let warning = syncStartAtLogin(isWanted: parseResult.config.startAtLogin) {
+        warnings.append(warning.description(.warning))
+    }
+    let containsWarnings = !warnings.isEmpty
 
     if !args.noGui {
         let lines = errors + warnings
         switch true {
             case !errors.isEmpty:
-                let msg = failedToParseMsg(configUrl: result.configUrl, errorsCount: parseResult.errors.count, warningsCount: parseResult.warnings.count, lines: lines)
+                let msg = failedToParseMsg(configUrl: result.configUrl, errorsCount: parseResult.errors.count, warningsCount: warnings.count, lines: lines)
                 MessageModel.shared.message = Message(body: msg, containsWarnings: containsWarnings)
             case warningsAsErrors && !warnings.isEmpty:
-                let msg = parsedWithWarningsMsg(configUrl: result.configUrl, warningsCount: parseResult.warnings.count, lines: lines)
+                let msg = parsedWithWarningsMsg(configUrl: result.configUrl, warningsCount: warnings.count, lines: lines)
                 MessageModel.shared.message = Message(body: msg, containsWarnings: containsWarnings)
             default:
                 MessageModel.shared.message = nil
@@ -53,7 +56,6 @@ struct ReloadConfigResult {
         config = parseResult.config
         configUrl = result.configUrl
         await activateMode_nonCancellable(activeMode)
-        syncStartAtLogin()
         syncFocusFollowsMouse(config)
         syncConfigFileWatcher()
     }

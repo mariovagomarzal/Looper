@@ -7,6 +7,11 @@ import Foundation
         initTerminationHandler()
         unsafe _isCli = false
         initServerArgs()
+        if isAppTranslocated {
+            // Asking for the permission here would also reset the one of the installed copy
+            showTranslocationMessage()
+            return
+        }
         await waitForAccessibilityPermission_nonCancellable()
         if isDebug {
             await toggleReleaseServerIfDebug(.off)

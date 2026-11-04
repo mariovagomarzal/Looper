@@ -51,17 +51,14 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
             }.keyboardShortcut("E", modifiers: .command)
             openConfigButton()
             reloadConfigButton(warningsAsErrors: false)
+        } else if isAppTranslocated {
+            Button("Move \(looperAppName) to Applications to use it...") { showTranslocationMessage() }
         } else {
             Button("\(looperAppName) requires accessibility permission to move windows") {
                 viewModel.axPermissionStatus = .waitingWithPrompt
             }
         }
-        Button("Quit \(looperAppName)") {
-            Task.startUnstructured {
-                terminationHandler?.beforeTermination()
-                terminateApp()
-            }
-        }.keyboardShortcut("Q", modifiers: .command)
+        quitButton()
     } label: {
         switch (viewModel.axPermissionStatus, viewModel.isEnabled) {
             case (.granted, true):
@@ -74,6 +71,16 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
                     .aspectRatio(contentMode: .fit)
         }
     }
+}
+
+@MainActor
+func quitButton() -> some View {
+    Button("Quit \(looperAppName)") {
+        Task.startUnstructured {
+            terminationHandler?.beforeTermination()
+            terminateApp()
+        }
+    }.keyboardShortcut("Q", modifiers: .command)
 }
 
 @MainActor @ViewBuilder
