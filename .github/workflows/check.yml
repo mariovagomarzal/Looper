@@ -24,6 +24,21 @@ jobs:
       - uses: ./.github/actions/setup-devenv
       - run: devenv shell -- just check
 
+  commits:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-devenv
+      - name: Check the commit messages
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: devenv shell -- gitlint --commits "$BASE_SHA..$HEAD_SHA"
+
   docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
