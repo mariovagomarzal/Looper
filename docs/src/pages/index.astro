@@ -25,6 +25,34 @@ right = 'workspace next'
 [mode.main.gesture]
 swipe-3-left  = 'workspace --wrap-around prev'
 swipe-3-right = 'workspace --wrap-around next'`;
+
+/** A small TOML highlighter for the config example: comments, tables, keys, strings and punctuation */
+function highlightToml(code: string): string {
+	const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	const span = (kind: string, text: string) => `<span class="tk-${kind}">${escape(text)}</span>`;
+	return code
+		.split('\n')
+		.map((line) => {
+			if (line.trimStart().startsWith('#')) return span('comment', line);
+			if (/^\s*\[.*\]\s*$/.test(line)) return span('table', line);
+			const assignment = line.match(/^(\s*)([A-Za-z0-9_.-]+)(\s*=\s*)(.*)$/);
+			if (!assignment) return escape(line);
+			const [, indent, key, equals, value] = assignment;
+			const valueHtml = value
+				.split(/('[^']*')/)
+				.map((part) => {
+					if (part.startsWith("'")) return span('string', part);
+					// Keys of inline tables, like 'release' in { release = '...' }
+					return part
+						.split(/([A-Za-z][A-Za-z0-9-]*)(?=\s*=)/)
+						.map((piece, index) => (piece ? span(index % 2 ? 'key' : 'punct', piece) : ''))
+						.join('');
+				})
+				.join('');
+			return escape(indent) + span('key', key) + span('punct', equals) + valueHtml;
+		})
+		.join('\n');
+}
 ---
 
 <!doctype html>
@@ -37,6 +65,18 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		<link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
 		<meta property="og:title" content="Looper" />
 		<meta property="og:description" content="Tile with your keyboard. Steer with a wheel." />
+		<script is:inline>
+			// The same theme preference as the docs (Starlight): 'light', 'dark', or '' to follow the system
+			(() => {
+				let stored = '';
+				try {
+					stored = localStorage.getItem('starlight-theme') || '';
+				} catch {}
+				const system = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+				document.documentElement.dataset.theme = stored === 'light' || stored === 'dark' ? stored : system;
+				document.documentElement.dataset.themePreference = stored || 'auto';
+			})();
+		</script>
 	</head>
 	<body>
 		<header class="nav">
@@ -47,6 +87,11 @@ swipe-3-right = 'workspace --wrap-around next'`;
 			<nav aria-label="Main">
 				<a href={docs}>Docs</a>
 				<a class="pill" href={github}>GitHub</a>
+				<button class="theme-toggle" type="button" aria-label="Theme: follow the system">
+					<svg class="icon-auto" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"></path></svg>
+					<svg class="icon-light" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+					<svg class="icon-dark" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>
+				</button>
 			</nav>
 		</header>
 
@@ -201,7 +246,7 @@ swipe-3-right = 'workspace --wrap-around next'`;
 						<i class="r"></i><i class="y"></i><i class="g"></i>
 						<span>~/.config/looper/looper.toml</span>
 					</div>
-					<pre><code>{configExample}</code></pre>
+					<pre><code set:html={highlightToml(configExample)} /></pre>
 				</div>
 			</section>
 
@@ -223,6 +268,28 @@ swipe-3-right = 'workspace --wrap-around next'`;
 			<span>Looper, released under the MIT License</span>
 			<nav class="footer-links" aria-label="Footer"><a href={github}>GitHub</a><a href={`${github}/issues`}>Issues</a><a href={docs}>Docs</a></nav>
 		</footer>
+		<script>
+			const order = ['auto', 'light', 'dark'];
+			const labels = { auto: 'Theme: follow the system', light: 'Theme: light', dark: 'Theme: dark' };
+			const root = document.documentElement;
+			const media = matchMedia('(prefers-color-scheme: light)');
+			const apply = (preference: string) => {
+				root.dataset.themePreference = preference;
+				root.dataset.theme = preference === 'auto' ? (media.matches ? 'light' : 'dark') : preference;
+				document.querySelector('.theme-toggle')?.setAttribute('aria-label', labels[preference as keyof typeof labels]);
+				try {
+					localStorage.setItem('starlight-theme', preference === 'auto' ? '' : preference);
+				} catch {}
+			};
+			apply(root.dataset.themePreference ?? 'auto');
+			document.querySelector('.theme-toggle')?.addEventListener('click', () => {
+				const current = order.indexOf(root.dataset.themePreference ?? 'auto');
+				apply(order[(current + 1) % order.length]);
+			});
+			media.addEventListener('change', () => {
+				if (root.dataset.themePreference === 'auto') apply('auto');
+			});
+		</script>
 	</body>
 </html>
 
@@ -236,20 +303,44 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		--muted: #9aa1b2;
 		--accent: #3478f6;
 		--accent-2: #a3c8ff;
+		--link: #a3c8ff;
+		--eyebrow: #a3c8ff;
+		--code-bg: #0b0c10;
+		--code-bar: #1a1c22;
+		--code-text: #e6e8ee;
+		--code-dim: #8f97aa;
+		--code-shadow: rgba(0, 0, 0, 0.7);
+		--snippet-bg: rgba(0, 0, 0, 0.25);
+		--tk-comment: #6f7890;
+		--tk-table: #a3c8ff;
+		--tk-key: #8fd3ff;
+		--tk-string: #f5c07a;
+		--tk-punct: #9aa1b2;
 		color-scheme: dark;
 	}
-	@media (prefers-color-scheme: light) {
-		:root {
-			--bg: #f7f8fb;
-			--bg-2: #eef1f6;
-			--card: rgba(255, 255, 255, 0.75);
-			--border: rgba(16, 22, 42, 0.09);
-			--text: #10162a;
-			--muted: #5b6478;
-			--accent: #2f6ae0;
-			--accent-2: #143f91;
-			color-scheme: light;
-		}
+	:root[data-theme='light'] {
+		--bg: #f7f8fb;
+		--bg-2: #eef1f6;
+		--card: rgba(255, 255, 255, 0.75);
+		--border: rgba(16, 22, 42, 0.09);
+		--text: #10162a;
+		--muted: #5b6478;
+		--accent: #2f6ae0;
+		--accent-2: #143f91;
+		--link: #2f6ae0;
+		--eyebrow: #2f6ae0;
+		--code-bg: #ffffff;
+		--code-bar: #eef1f6;
+		--code-text: #1c2233;
+		--code-dim: #5b6478;
+		--code-shadow: rgba(16, 22, 42, 0.18);
+		--snippet-bg: rgba(16, 22, 42, 0.05);
+		--tk-comment: #7a8296;
+		--tk-table: #2f6ae0;
+		--tk-key: #0b6b8a;
+		--tk-string: #a8590b;
+		--tk-punct: #5b6478;
+		color-scheme: light;
 	}
 	* {
 		box-sizing: border-box;
@@ -268,12 +359,7 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		line-height: 1.55;
 	}
 	a {
-		color: var(--accent-2);
-	}
-	@media (prefers-color-scheme: light) {
-		a {
-			color: var(--accent);
-		}
+		color: var(--link);
 	}
 	main {
 		max-width: 1120px;
@@ -332,10 +418,8 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
 	}
-	@media (prefers-color-scheme: dark) {
-		.eyebrow {
-			color: var(--accent-2);
-		}
+	.eyebrow {
+		color: var(--eyebrow);
 	}
 	.hero {
 		text-align: center;
@@ -515,7 +599,7 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		margin-bottom: 10px;
 		padding: 10px 12px;
 		border-radius: 10px;
-		background: rgba(0, 0, 0, 0.25);
+		background: var(--snippet-bg);
 		color: var(--text);
 		overflow-wrap: anywhere;
 	}
@@ -524,8 +608,9 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		margin: 14px 0 10px;
 		padding: 14px 16px;
 		border-radius: 12px;
-		background: #0b0c10;
-		color: #e6e8ee;
+		border: 1px solid var(--border);
+		background: var(--code-bg);
+		color: var(--code-text);
 		font-family: 'SF Mono', ui-monospace, Menlo, monospace;
 		font-size: 0.8rem;
 		line-height: 1.7;
@@ -535,7 +620,7 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		color: #28c840;
 	}
 	.terminal .dim {
-		color: #8f97aa;
+		color: var(--code-dim);
 	}
 	.config {
 		display: grid;
@@ -548,16 +633,17 @@ swipe-3-right = 'workspace --wrap-around next'`;
 		border-radius: 14px;
 		overflow: hidden;
 		border: 1px solid var(--border);
-		background: #0b0c10;
-		box-shadow: 0 30px 60px -25px rgba(0, 0, 0, 0.7);
+		background: var(--code-bg);
+		box-shadow: 0 30px 60px -25px var(--code-shadow);
 	}
 	.window-bar {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		padding: 12px 14px;
-		background: #1a1c22;
-		color: #8f97aa;
+		background: var(--code-bar);
+		border-bottom: 1px solid var(--border);
+		color: var(--code-dim);
 		font-size: 0.8rem;
 	}
 	.window-bar i {
@@ -580,11 +666,65 @@ swipe-3-right = 'workspace --wrap-around next'`;
 	.window pre {
 		margin: 0;
 		padding: 18px 20px;
-		color: #d6dcea;
+		color: var(--code-text);
 		font-family: 'SF Mono', ui-monospace, Menlo, monospace;
 		font-size: 0.82rem;
 		line-height: 1.65;
 		overflow-x: auto;
+	}
+	/* The highlighted config example */
+	.tk-comment {
+		color: var(--tk-comment);
+		font-style: italic;
+	}
+	.tk-table {
+		color: var(--tk-table);
+		font-weight: 600;
+	}
+	.tk-key {
+		color: var(--tk-key);
+	}
+	.tk-string {
+		color: var(--tk-string);
+	}
+	.tk-punct {
+		color: var(--tk-punct);
+	}
+	.theme-toggle {
+		display: inline-grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: var(--card);
+		color: var(--text);
+		cursor: pointer;
+		transition:
+			transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+			background 0.22s ease,
+			border-color 0.22s ease;
+	}
+	.theme-toggle:hover {
+		transform: translateY(-1px) rotate(-12deg);
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 12%, var(--card));
+	}
+	.theme-toggle:active {
+		transform: scale(0.94);
+	}
+	.theme-toggle:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
+	.theme-toggle svg {
+		display: none;
+	}
+	:root[data-theme-preference='auto'] .theme-toggle .icon-auto,
+	:root[data-theme-preference='light'] .theme-toggle .icon-light,
+	:root[data-theme-preference='dark'] .theme-toggle .icon-dark {
+		display: block;
 	}
 	.credits {
 		text-align: center;
