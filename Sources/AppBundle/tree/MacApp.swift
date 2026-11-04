@@ -1,5 +1,6 @@
 import AppKit
 import Common
+import os
 
 // Potential alternative implementation
 // https://github.com/swiftlang/swift-evolution/blob/main/proposals/0392-custom-actor-executors.md
@@ -367,15 +368,27 @@ final class MacApp: AbstractApp {
     @MainActor private func nonidempotentNativeTabSwapHeuristic(_ aliveOrInvisible: inout [UInt32: WindowLifeStatus]) {
         let noLongerAlive = lifeStatusesOfLastRefresh.filter { (id, lifeStatus) in lifeStatus == .alive && aliveOrInvisible[id] != .alive }
         let becameAlive = aliveOrInvisible.filter { (id, lifeStatus) in lifeStatus == .alive && lifeStatusesOfLastRefresh[id] != .alive }
+        for (id, lifeStatus) in aliveOrInvisible where lifeStatusesOfLastRefresh[id] != lifeStatus {
+            windowsLog.notice("\(self.name ?? "?", privacy: .public) window \(id): \(String(describing: self.lifeStatusesOfLastRefresh[id]), privacy: .public) -> \(String(describing: lifeStatus), privacy: .public)")
+        }
         lifeStatusesOfLastRefresh = aliveOrInvisible
         if let backgroundTabId = noLongerAlive.singleOrNil()?.key,
-           let frontmostTabId = becameAlive.singleOrNil()?.key
+           let frontmostTabId = becameAlive.singleOrNil()?.key,
+           mayBeNativeTabsOfOneWindow(backgroundTabId, frontmostTabId)
         {
+            windowsLog.notice("\(self.name ?? "?", privacy: .public) native tab switch: window \(backgroundTabId) -> \(frontmostTabId)")
             let tabGroupWindowId = getOrRegisterOpaqueWindowId(backgroundTabId)
             windowIdMapping.put(tabGroupWindowId, frontmostTabId)
             aliveOrInvisible[backgroundTabId] = nil
             bgTabsScheduledForPrune.insert(backgroundTabId)
         }
+    }
+
+    /// Windows of the app on two native Spaces also swap between alive and invisible when the user switches Spaces,
+    /// and they must not be taken for native tabs. Tabs of one window are on the same Space (or on none, when hidden)
+    @MainActor private func mayBeNativeTabsOfOneWindow(_ backgroundTabId: UInt32, _ frontmostTabId: UInt32) -> Bool {
+        guard let backgroundSpace = nativeSpace(ofWindow: backgroundTabId) else { return true }
+        return nativeSpace(ofWindow: frontmostTabId) == backgroundSpace
     }
 
     private func destroy() async {
@@ -408,6 +421,8 @@ final class MacApp: AbstractApp {
         } ?? .cancelled
     }
 }
+
+let windowsLog = Logger(subsystem: looperAppId, category: "windows")
 
 private final class AxWindow {
     let windowId: UInt32
