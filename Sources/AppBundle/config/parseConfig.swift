@@ -156,6 +156,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "gaps": Parser(\.gaps, parseGaps),
     "focus-follows-mouse": Parser(\.focusFollowsMouse, parseFocusFollowsMouse),
     "wheel": Parser(\.wheel, parseWheel),
+    "menu-bar": Parser(\.menuBar, parseMenuBar),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
 
     // Deprecated
@@ -276,6 +277,9 @@ struct ParseConfigResult {
     // Parse modeConfigRootKey after keyMappingConfigRootKey
     if let modes = rawTable[modeConfigRootKey].flatMap({ parseModes($0, .rootKey(modeConfigRootKey), &c, config.keyMapping.resolve()) }) {
         config.modes = modes
+    }
+    for mode in config.menuBar.mode.keys.sorted() where mode != MenuBarConfig.anyMode && config.modes[mode] == nil {
+        c.errors.append(.init(.rootKey("menu-bar") + .key("mode") + .key(mode), "Unknown mode '\(mode)'"))
     }
 
     if config.configVersion <= ._1 {

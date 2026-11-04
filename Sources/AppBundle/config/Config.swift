@@ -53,6 +53,7 @@ struct Config: Withable {
     var execConfig: ExecConfig = ExecConfig()
     var focusFollowsMouse: FocusFollowsMouse = FocusFollowsMouse()
     var wheel: WheelConfig = WheelConfig()
+    var menuBar: MenuBarConfig = MenuBarConfig()
 
     var onFocusChanged: Shell<any Command> = .empty
     // var onFocusedWorkspaceChanged: [any Command] = []
