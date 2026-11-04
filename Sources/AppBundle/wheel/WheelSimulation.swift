@@ -56,7 +56,9 @@ import Common
         case .empty:
             return true
         case .cmd(let command):
-            guard command.isSimulatable,
+            // Floating windows move and resize by frame, which isn't part of the tree
+            let byFrame = (command is MoveCommand || command is ResizeCommand) && isFloating(command.args, env, io)
+            guard command.isSimulatable, !byFrame,
                   let workspace = command.args.resolveTargetOrReportError(env, io)?.workspace, isCovered(workspace),
                   let succeeded = applySynchronously(command, env, io)
             else { return nil }
@@ -103,7 +105,7 @@ extension Command {
         case let it as MoveCommand: it.apply(env, io)
         case let it as SwapCommand: it.apply(env, io)
         case let it as LayoutCommand: it.applySynchronously(env, io)
-        case let it as ResizeCommand: it.run(env, io)
+        case let it as ResizeCommand: it.apply(env, io)
         case let it as BalanceSizesCommand: it.run(env, io)
         case let it as FlattenWorkspaceTreeCommand: it.run(env, io)
         case let it as JoinWithCommand: it.run(env, io)

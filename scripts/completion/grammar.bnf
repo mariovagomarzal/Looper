@@ -59,7 +59,7 @@ looper -h;
 
     | mode <mode_id>
 
-    | move [<move_command_flag>]... (left|down|up|right) [<move_command_flag>]...
+    | move [<move_command_flag>]... (left|down|up|right) [<distance>] [<move_command_flag>]...
 
     | move-mouse [--fail-if-noop] (monitor-lazy-center|monitor-force-center|window-lazy-center|window-force-center) [--fail-if-noop]
 
@@ -124,6 +124,7 @@ looper -h;
 <wheel_profile> ::= {{{ looper config --get wheel.profiles --keys }}};
 <workspace> ::= {{{ looper list-workspaces --monitor all --empty no }}};
 <number> ::= {{{ true }}};
+<distance> ::= {{{ true }}};
 <monitor_pattern> ::= {{{ true }}};
 <layouts> ::= h_tiles|v_tiles|h_accordion|v_accordion|tiles|accordion|horizontal|vertical|tiling|floating;
 

@@ -50,12 +50,28 @@ struct WheelPreviewItem: Equatable, Identifiable {
             let monitor = target.workspace.workspaceMonitorInfo
             let rect = fullscreen.args.noOuterGaps ? monitor.visibleRect : monitor.visibleRectPaddedByOuterGaps
             return [WheelPreviewItem(windowId: window.windowId, rect: rect, kind: .frame)]
+        case let move as MoveCommand where isFloating(move.args, env, io):
+            switch await move.floatingMove(env, io) {
+                case .frame(let window, let frame), .monitor(let window, _, let frame):
+                    return [WheelPreviewItem(windowId: window.windowId, rect: frame, kind: .frame)]
+                case .exit:
+                    return []
+            }
+        case let resize as ResizeCommand where isFloating(resize.args, env, io):
+            guard let (window, frame) = await resize.floatingFrame(env, io) else { return [] }
+            return [WheelPreviewItem(windowId: window.windowId, rect: frame, kind: .frame)]
         case let focus as FocusCommand:
             guard let window = await focusTarget(focus, env, io), let rect = try? await window.getAxRect(.nonCancellable) else { return [] }
             return [WheelPreviewItem(windowId: window.windowId, rect: rect, kind: .focus)]
         default:
             return simulateWheelPreview(action, env, mode) ?? []
     }
+}
+
+/// Whether the command acts on a floating window, which moves by frame instead of in the tree
+@MainActor func isFloating(_ args: some CmdArgs, _ env: CmdEnv, _ io: CmdIo) -> Bool {
+    guard let window = args.resolveTargetOrReportError(env, io)?.windowOrNil, case .floatingWindowsContainer = window.windowParentCases else { return false }
+    return true
 }
 
 /// The window that 'focus' would focus, also on another monitor

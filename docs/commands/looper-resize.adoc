@@ -27,6 +27,11 @@ The dimension to resize is chosen by the first argument
 it changes height if the parent has vertical orientation
 * `smart-opposite` resizes the opposite axis of smart
 
+Floating windows keep their center: `width` and `height` change one dimension, `smart` changes both, and
+`smart-opposite` fails because floating windows have no parent container.
+They are never smaller than 50 points nor bigger than the usable area of their monitor, and a window that grows past an
+edge of that area is pushed back inside.
+
 Second argument controls how much the size changes
 
 * If the `<number>` is prefixed with `+` then the dimension is increased

@@ -11,7 +11,7 @@ include::util/man-attributes.adoc[]
 // tag::synopsis[]
 looper move [-h|--help] [--window-id <window-id>] [--boundaries <boundary>]
                [--boundaries-action <boundary-action>] [--fail-if-fullscreen]
-               [--fail-if-macos-native-fullscreen] (left|down|up|right)
+               [--fail-if-macos-native-fullscreen] (left|down|up|right) [<distance>]
 
 // end::synopsis[]
 
@@ -20,6 +20,16 @@ looper move [-h|--help] [--window-id <window-id>] [--boundaries <boundary>]
 
 // tag::body[]
 Move the focused window in the given direction. See the "Examples" section for more details.
+
+A tiling window moves to the next place in the tree.
+A floating window moves by `<distance>` and stops at the edge of the usable area of its monitor.
+`<distance>` is a number of points (`40`) or a percentage of the usable area along the direction (`10%`).
+The default is: `5%`.
+Distances only apply to floating windows.
+
+When a floating window is already at the edge, `--boundaries all-monitors-outer-frame` takes it to the monitor in that
+direction, against the edge it comes through.
+Otherwise, `--boundaries-action fail` exits with non-zero code, and the other actions leave the window where it is.
 
 Deprecated name: `move-through`
 
@@ -37,7 +47,8 @@ Defines move boundaries. +
 The default is: `workspace`
 
 --boundaries-action <boundary-action>::
-Defines the behavior when requested to move across the `<boundary>`. +
+Defines the behavior when requested to move across the `<boundary>`.
+For floating windows, `create-implicit-container` behaves like `stop`. +
 `<boundary-action>` possible values: `(stop|fail|create-implicit-container)`. +
 The default is: `create-implicit-container`
 

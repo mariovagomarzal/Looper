@@ -17,7 +17,60 @@ struct MoveCommand: Command {
         ) {
             return .fail
         }
+        if case .floatingWindowsContainer = currentWindow.windowParentCases {
+            switch await floatingMove(env, io) {
+                case .exit(let exitCode):
+                    return exitCode
+                case .frame(let window, let frame):
+                    window.isFullscreen = false
+                    window.setAxFrame(frame.topLeftCorner, nil)
+                    return .succ
+                case .monitor(let window, let monitor, let frame):
+                    let moveNodeToMonitorArgs = MoveNodeToMonitorCmdArgs(target: .direction(args.direction.val))
+                        .with(\.windowId, .id(window.windowId))
+                        .with(\.focusFollowsWindow, globalFocus.windowOrNil == window)
+                    let exitCode = MoveNodeToMonitorCommand(args: moveNodeToMonitorArgs).run(env, io)
+                    guard exitCode.rawValue == 0, window.nodeMonitorInfo?.rect.topLeftCorner == monitor.rect.topLeftCorner else { return exitCode }
+                    window.isFullscreen = false
+                    window.setAxFrame(frame.topLeftCorner, frame.size)
+                    return .succ
+            }
+        }
         return apply(env, io)
+    }
+
+    enum FloatingMove {
+        /// The window moves inside its monitor
+        case frame(Window, Rect)
+        /// The window enters the monitor next to its own from the edge it touches
+        case monitor(Window, MonitorInfo, Rect)
+        case exit(BinaryExitCode)
+    }
+
+    /// Where a floating window moves: the distance along the direction, without leaving the usable area of the monitor.
+    /// At the edge, '--boundaries all-monitors-outer-frame' takes it to the next monitor. Shared with the wheel preview
+    @MainActor func floatingMove(_ env: CmdEnv, _ io: CmdIo) async -> FloatingMove {
+        let direction = args.direction.val
+        guard let target = args.resolveTargetOrReportError(env, io), let window = target.windowOrNil else {
+            return .exit(.fail(io.err(noWindowIsFocused)))
+        }
+        guard case .floatingWindowsContainer = window.windowParentCases else { return .exit(.fail(io.err(bugPrompt()))) }
+        guard let rect = try? await window.getAxRect(.nonCancellable) else { return .exit(.fail(io.err("Can't read the frame of the window"))) }
+        let monitor = target.workspace.workspaceMonitorInfo
+        let area = monitor.visibleRectPaddedByOuterGaps
+        let moved = movedFloatingFrame(rect, direction, args.distance ?? .default, area: area)
+        if !moved.topLeftCorner.isApproximatelyEqual(to: rect.topLeftCorner) { return .frame(window, moved) }
+        // Already at the edge
+        if args.boundaries == .allMonitorsOuterFrame,
+           let (monitors, index) = monitor.findRelativeMonitor(inDirection: direction),
+           let next = monitors.getOrNil(atIndex: index)
+        {
+            return .monitor(window, next, enteringFloatingFrame(rect, direction, from: area, to: next.visibleRectPaddedByOuterGaps))
+        }
+        return switch args.boundariesAction {
+            case .fail: .exit(.fail)
+            case .stop, .createImplicitContainer: .exit(.succ)
+        }
     }
 
     /// The tree change, without the asynchronous fullscreen checks. Synchronous, so that the wheel preview can simulate it
@@ -31,6 +84,7 @@ struct MoveCommand: Command {
             case nil: return .fail
             case .tilingContainer(let parent):
                 guard let indexOfCurrent = currentWindow.ownIndex(in: .all) else { return .fail(io.err(bugPrompt())) }
+                if args.distance != nil { return .fail(io.err("A distance only applies to floating windows")) }
                 if parent.orientation == direction.orientation,
                    let siblingIndex = parent.inhabitedSiblingIndex(of: indexOfCurrent, in: direction)
                 {
@@ -45,14 +99,54 @@ struct MoveCommand: Command {
                 } else {
                     return moveOut(tilingWindow: currentWindow, direction: direction, io, args, env)
                 }
-            case .floatingWindowsContainer: // floating window
-                return .fail(io.err("moving floating windows isn't yet supported")) // todo
+            case .floatingWindowsContainer: // Moved by frame, asynchronously (see 'floatingMove')
+                return .fail(io.err(bugPrompt()))
             case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer, .macosHiddenAppsWindowsContainer:
                 return .fail(io.err(moveOutMacosUnconventionalWindow))
             case .macosPopupWindowsContainer:
                 return .fail(io.err(bugPrompt())) // Impossible
         }
     }
+}
+
+/// The frame of a floating window moved by `distance`, stopping at the edge of the area. A window that is already beyond
+/// the edge isn't pulled back
+func movedFloatingFrame(_ rect: Rect, _ direction: CardinalDirection, _ distance: MoveDistance, area: Rect) -> Rect {
+    let isHorizontal = direction.orientation == .h
+    let step: CGFloat = switch distance {
+        case .points(let points): CGFloat(points)
+        case .percent(let percent): (isHorizontal ? area.width : area.height) * CGFloat(percent) / 100
+    }
+    let (start, size, areaStart, areaEnd) = isHorizontal
+        ? (rect.minX, rect.width, area.minX, area.maxX)
+        : (rect.minY, rect.height, area.minY, area.maxY)
+    let newStart = direction.isPositive
+        ? min(start + step, max(start, areaEnd - size))
+        : max(start - step, min(start, areaStart))
+    return isHorizontal
+        ? Rect(topLeftX: newStart, topLeftY: rect.minY, width: rect.width, height: rect.height)
+        : Rect(topLeftX: rect.minX, topLeftY: newStart, width: rect.width, height: rect.height)
+}
+
+/// The frame of a floating window that crosses into the next monitor: against the edge it comes through, at the same
+/// relative position along that edge, and no bigger than the new area
+func enteringFloatingFrame(_ rect: Rect, _ direction: CardinalDirection, from area: Rect, to newArea: Rect) -> Rect {
+    let width = min(rect.width, newArea.width)
+    let height = min(rect.height, newArea.height)
+    func relative(_ value: CGFloat, _ start: CGFloat, _ length: CGFloat, _ newStart: CGFloat, _ newLength: CGFloat, _ size: CGFloat) -> CGFloat {
+        let proportion = length > 0 ? (value - start) / length : 0
+        return (newStart + proportion * newLength).coerce(in: newStart ... max(newStart, newStart + newLength - size))
+    }
+    return switch direction {
+        case .left: Rect(topLeftX: newArea.maxX - width, topLeftY: relative(rect.minY, area.minY, area.height, newArea.minY, newArea.height, height), width: width, height: height)
+        case .right: Rect(topLeftX: newArea.minX, topLeftY: relative(rect.minY, area.minY, area.height, newArea.minY, newArea.height, height), width: width, height: height)
+        case .up: Rect(topLeftX: relative(rect.minX, area.minX, area.width, newArea.minX, newArea.width, width), topLeftY: newArea.maxY - height, width: width, height: height)
+        case .down: Rect(topLeftX: relative(rect.minX, area.minX, area.width, newArea.minX, newArea.width, width), topLeftY: newArea.minY, width: width, height: height)
+    }
+}
+
+extension CGPoint {
+    fileprivate func isApproximatelyEqual(to other: CGPoint) -> Bool { abs(x - other.x) < 0.5 && abs(y - other.y) < 0.5 }
 }
 
 @MainActor private func hitWorkspaceBoundaries(
