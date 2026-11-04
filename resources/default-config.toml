@@ -141,6 +141,20 @@ wheel.release-delay = 150
 # [wheel.profiles.floating.actions]
 # center = 'layout tiling'
 
+# Trackpad gestures are bound per mode like keys, in a 'gesture' table next to 'binding':
+#   '[modifiers-]swipe-<fingers>-<left|right|up|down>' or '[modifiers-]tap-<fingers>', with 3 or 4 fingers.
+#   Modifiers are the ones of key bindings. Every gesture runs its commands once.
+# macOS gestures can't be blocked: turn off the macOS gestures that use the same fingers in
+# System Settings > Trackpad (and 'three finger drag' in Accessibility), or both actions run.
+# [mode.main.gesture]
+# swipe-3-left = 'workspace --wrap-around prev'
+# swipe-3-right = 'workspace --wrap-around next'
+# alt-swipe-3-left = 'move left'
+# tap-4 = 'layout accordion tiles'
+
+# How far the fingers must move for a swipe, in percent of the trackpad
+gesture-swipe-distance = 15
+
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented

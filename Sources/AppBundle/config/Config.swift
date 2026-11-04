@@ -44,6 +44,8 @@ struct Config: Withable {
     var autoReloadConfig: Bool = false
     var automaticallyUnhideMacosHiddenApps: Bool = false
     var accordionPadding: Int = 30
+    /// How far the fingers must move for a trackpad swipe, in percent of the trackpad
+    var gestureSwipeDistance: Int = 15
     var enableNormalizationOppositeOrientationForNestedContainers: Bool = true
     var persistentWorkspaces: OrderedSet<String> = []
     var execOnWorkspaceChange: [String] = [] // todo deprecate

@@ -64,6 +64,20 @@ bindings (`lalt-h`) win over generic ones (`alt-h`).
   thread retries until it's granted.
 - While Secure Input is on (password fields), macOS doesn't deliver key events to taps, so bindings don't work there.
 
+### Trackpad gestures
+
+Sources/AppBundle/gestures/
+
+Public APIs only deliver gestures to the app under the pointer, so gestures are read from the private
+MultitouchSupport framework (`Multitouch.swift`), resolved at runtime like SkyLight. It reports every finger of every
+frame on its own thread; Looper reads it only while some mode has a `gesture` table.
+
+- `TrackpadGestureRecognizer` is pure: it measures the movement of the center of the fingers from where their number
+  last changed (fingers land and lift one by one). A swipe fires once per gesture, with all the fingers of the gesture;
+  a tap is a short touch that doesn't move.
+- Modifiers come from the hotkey tap, which tracks the pressed modifiers on every flags change.
+- macOS gestures can't be blocked, so gestures that macOS also uses run both actions.
+
 ## Wheel subsystem
 
 Sources/AppBundle/wheel/

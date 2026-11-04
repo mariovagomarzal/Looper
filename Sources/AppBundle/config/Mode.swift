@@ -2,6 +2,7 @@ import Common
 
 struct Mode: Withable, Equatable, Sendable {
     var bindings: [String: HotkeyBinding]
+    var gestures: [String: GestureBinding] = [:]
 
     static let zero = Mode(bindings: [:])
 }
@@ -37,6 +38,8 @@ func parseMode(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout Conf
         switch key {
             case "binding":
                 result.bindings = parseBindings(value, backtrace, &c, mapping)
+            case "gesture":
+                result.gestures = parseGestureBindings(value, backtrace, &c)
             default:
                 c.errors += [unknownKeyDiagnostic(backtrace)]
         }

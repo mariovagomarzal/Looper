@@ -11,6 +11,7 @@ import Synchronization
     let oldMode = activeMode
     activeMode = targetMode
     syncHotkeyTapBindings()
+    syncGestureBindings()
     startHotkeyEventTapIfNeeded()
     if oldMode != targetMode {
         broadcastEvent(.modeChanged(mode: targetMode))
@@ -80,9 +81,18 @@ private struct HotkeyTapState: Sendable {
     var wheelReleaseDelay = 0
     /// Mouse ups of clicks that finished a wheel gesture
     var swallowedMouseUps: Set<UInt32> = []
+    /// For trackpad gestures, which carry no modifiers
+    var pressedModifiers = PressedModifiers()
+    /// The last scroll event that wasn't momentum was swallowed. See ``handleScroll(_:)``
+    var swallowedLastScroll = false
 }
 
 private let hotkeyTapState = Mutex(HotkeyTapState())
+
+/// The modifier keys that are down, as last seen by the hotkey tap
+func currentPressedModifiers() -> PressedModifiers {
+    hotkeyTapState.withLock { $0.pressedModifiers }
+}
 
 @MainActor private var isHotkeyTapStarted = false
 
@@ -112,6 +122,7 @@ private func runHotkeyEventTap() {
     let types: [CGEventType] = [
         .keyDown, .keyUp, .flagsChanged,
         .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp, .otherMouseDown, .otherMouseUp,
+        .scrollWheel,
     ]
     let mask = types.reduce(CGEventMask(0)) { $0 | CGEventMask(1 << $1.rawValue) }
     while true {
@@ -158,6 +169,8 @@ private func hotkeyTapCallback(
             swallow = handleMouseDown(type)
         case .leftMouseUp, .rightMouseUp, .otherMouseUp:
             swallow = hotkeyTapState.withLock { $0.swallowedMouseUps.remove(type.rawValue) != nil }
+        case .scrollWheel:
+            swallow = handleScroll(event)
         default:
             swallow = false
     }
@@ -170,7 +183,8 @@ private func handleFlagsChanged(_ event: CGEvent) {
     let fnDown = event.flags.contains(.maskSecondaryFn)
     let pressed = PressedModifiers(event.flags)
     apply(hotkeyTapState.withLock { state in
-        state.wheel.modifiersChanged(
+        state.pressedModifiers = pressed
+        return state.wheel.modifiersChanged(
             fnDown: fnDown,
             pressed,
             state.wheelTriggers,
@@ -195,6 +209,23 @@ private func handleMouseDown(_ type: CGEventType) -> Bool {
     apply(effect)
     return effect != nil
 }
+
+/// Swipes bound to commands must not scroll the app under the pointer. Scroll events are swallowed while such a swipe
+/// is on the trackpad, and so are the rest of their sequence (after the fingers lift) and its momentum
+private func handleScroll(_ event: CGEvent) -> Bool {
+    let isContinuation = event.getIntegerValueField(.scrollWheelEventMomentumPhase) != 0 ||
+        [scrollPhaseChanged, scrollPhaseEnded].contains(event.getIntegerValueField(.scrollWheelEventScrollPhase))
+    let swipe = isBoundTrackpadSwipeInProgress()
+    return hotkeyTapState.withLock { state in
+        let swallow = swipe || (isContinuation && state.swallowedLastScroll)
+        state.swallowedLastScroll = swallow
+        return swallow
+    }
+}
+
+/// kCGScrollPhase values of scroll events from trackpads
+private let scrollPhaseChanged: Int64 = 2
+private let scrollPhaseEnded: Int64 = 4
 
 private func handleKeyDown(_ event: CGEvent) -> Bool {
     let keyCode = UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
