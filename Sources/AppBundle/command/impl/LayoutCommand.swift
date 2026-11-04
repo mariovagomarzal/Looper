@@ -19,41 +19,47 @@ struct LayoutCommand: Command {
             case .exit(let exitCode): return exitCode
             case .resolved(let t, let n, let d): (target, node, targetDescription) = (t, n, d)
         }
-        if let exitCode = applyTilingLayout(targetDescription, node, io) { return exitCode }
-        switch targetDescription {
-            case .tiling:
-                guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
-                switch node {
-                    case .tilingContainer:
-                        return .succ // Nothing to do
-                    case .floatingWindowsContainer(let container):
-                        window.lastFloatingSize = (try? await window.getAxSize(.nonCancellable)) ?? window.lastFloatingSize
-                        guard let workspace = container.nodeWorkspace else { return .fail(io.err(bugPrompt())) }
-                        do {
-                            try await window.relayoutWindow(on: workspace, .nonCancellable, forceTile: true)
-                        } catch {
-                            return .fail(io.err(bugPrompt()))
-                        }
-                        return .succ
-                }
-            case .floating:
-                guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
-                let workspace = target.workspace
-                window.bindAsFloatingWindow(to: workspace)
-                if let size = window.lastFloatingSize { window.setAxFrame(nil, size) }
-                return .succ
-            default:
-                return .fail(io.err(bugPrompt())) // Handled by applyTilingLayout
+        // Floating windows remember their size to get it back when they float again
+        if case .tiling = targetDescription, case .floatingWindowsContainer = node, let window = target.windowOrNil {
+            window.lastFloatingSize = (try? await window.getAxSize(.nonCancellable)) ?? window.lastFloatingSize
         }
+        let exitCode = apply(target, node, targetDescription, io)
+        if case .floating = targetDescription, exitCode.rawValue == 0, let window = target.windowOrNil, let size = window.lastFloatingSize {
+            window.setAxFrame(nil, size)
+        }
+        return exitCode
     }
 
-    /// Changes of tiling layout and orientation. nil if the command switches between floating and tiling, which isn't
-    /// synchronous. Synchronous, so that the wheel preview can simulate it
-    @MainActor func applyTilingLayout(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode? {
+    /// The changes to the tree, without reading or setting window frames. nil for --for-next-detected-window.
+    /// Synchronous, so that the wheel preview can simulate it
+    @MainActor func applySynchronously(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode? {
         if args.forNextDetectedWindow { return nil }
         switch resolve(env, io) {
             case .exit(let exitCode): return exitCode
-            case .resolved(_, let node, let targetDescription): return applyTilingLayout(targetDescription, node, io)
+            case .resolved(let target, let node, let targetDescription): return apply(target, node, targetDescription, io)
+        }
+    }
+
+    @MainActor private func apply(
+        _ target: LiveFocus,
+        _ node: ConventionalWindowParentCases,
+        _ targetDescription: LayoutCmdArgs.LayoutDescription,
+        _ io: CmdIo,
+    ) -> BinaryExitCode {
+        if let exitCode = applyTilingLayout(targetDescription, node, io) { return exitCode }
+        guard let window = target.windowOrNil else { return .fail(io.err(noWindowIsFocused)) }
+        switch (targetDescription, node) {
+            case (.tiling, .tilingContainer):
+                return .succ // Nothing to do
+            case (.tiling, .floatingWindowsContainer(let container)):
+                guard let workspace = container.nodeWorkspace else { return .fail(io.err(bugPrompt())) }
+                window.bindAsNewTilingWindow(on: workspace)
+                return .succ
+            case (.floating, _):
+                window.bindAsFloatingWindow(to: target.workspace)
+                return .succ
+            default:
+                return .fail(io.err(bugPrompt())) // Handled by applyTilingLayout
         }
     }
 

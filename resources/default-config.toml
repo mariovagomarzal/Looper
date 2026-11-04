@@ -94,9 +94,9 @@ wheel.accent-color = 'system'
 # Trackpad haptic feedback when the selection changes
 wheel.haptics = true
 # While a slot is selected, outline where its release action would put windows: 'target' (the window it acts on),
-# 'all' (every window it moves) or 'off'. Previewed commands: place, fullscreen and focus, and the tiling commands
-# move, swap, layout (tiling layouts and orientations), resize, balance-sizes, flatten-workspace-tree, join-with and
-# split, also joined with '&&'. Other commands, and switching between floating and tiling, have no preview.
+# 'all' (every window it moves) or 'off'. Previewed commands: place, fullscreen and focus (also to another monitor),
+# and the commands that rearrange windows: move, swap, layout, resize, balance-sizes, flatten-workspace-tree,
+# join-with and split, also combined with '&&', '||' and ';'. Other commands have no preview.
 # Like the rest of the style, profiles inherit it, and a slot can override it: left = { release = '...', preview = 'off' }
 wheel.preview = 'target'
 wheel.preview-corner-radius = 10   # Points, from 0 to 40

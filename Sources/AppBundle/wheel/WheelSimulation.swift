@@ -5,28 +5,40 @@ import Common
 // frames are computed without touching any window, and the tree is put back exactly as it was. Everything happens
 // synchronously on the main actor, so no other code can observe the tree in between.
 
-/// What a tiling command would do to the visible workspaces. nil if the action can't be simulated
+/// What an action would do to the windows of the visible workspaces. nil if the action can't be simulated
 @MainActor func simulateWheelPreview(_ action: Shell<any Command>, _ env: CmdEnv, _ mode: WheelPreviewMode) -> [WheelPreviewItem]? {
-    guard mode != .off, let commands = simulatableCommands(action) else { return nil }
+    guard mode != .off, let first = action.flatten().first, first.isSimulatable else { return nil }
     let io = CmdIoImpl(stdin: .emptyStdin)
-    guard let targetWindow = commands.first.flatMap({ $0.args.resolveTargetOrReportError(env, io)?.windowOrNil }) else { return nil }
     let workspaces = Monitor.all.map(\.activeWorkspacesContainer.visibleWorkspace)
+    // The snapshot only covers the visible workspaces
+    guard let targetWindow = first.args.resolveTargetOrReportError(env, io)?.windowOrNil,
+          let targetWorkspace = targetWindow.nodeWorkspace, workspaces.contains(targetWorkspace)
+    else { return nil }
 
     let before = layoutFrames(workspaces)
+    let wasFloating = Set(workspaces.flatMap(\.floatingWindows).map(\.windowId))
     let snapshot = TreeSnapshot(workspaces)
+    var isFloating = wasFloating
     let after: [OpaqueWindowId: Rect]? = withGlobalFocusRestored {
-        for command in commands {
-            // A command that fails or can't run synchronously makes the whole action unpreviewable
-            if applySynchronously(command, env, io) != true { return nil }
+        // Commands that touch other workspaces can't be simulated
+        let simulated = simulate(action, env, io) { workspaces.contains($0) }
+        guard simulated != nil else { return nil }
+        var frames = layoutFrames(workspaces)
+        isFloating = Set(workspaces.flatMap(\.floatingWindows).map(\.windowId))
+        // A tiling window that floats keeps its position and gets back its last floating size
+        for window in workspaces.flatMap(\.floatingWindows) where !wasFloating.contains(window.windowId) {
+            guard let tile = before[window.windowId] else { continue }
+            frames[window.windowId] = Rect(topLeftX: tile.minX, topLeftY: tile.minY, width: window.lastFloatingSize?.width ?? tile.width, height: window.lastFloatingSize?.height ?? tile.height)
         }
-        return layoutFrames(workspaces)
+        return frames
     }
     snapshot.restore()
     guard let after else { return nil }
 
     let changed = after.keys.filter { id in before[id].map { !$0.isApproximatelyEqual(to: after[id]!) } ?? true }
     var items: [WheelPreviewItem] = []
-    if let frame = after[targetWindow.windowId], changed.contains(targetWindow.windowId) {
+    let switchedFloating = wasFloating.contains(targetWindow.windowId) != isFloating.contains(targetWindow.windowId)
+    if let frame = after[targetWindow.windowId], changed.contains(targetWindow.windowId) || switchedFloating {
         items.append(WheelPreviewItem(windowId: targetWindow.windowId, rect: frame, kind: .frame))
     }
     if mode == .all {
@@ -37,28 +49,52 @@ import Common
     return items
 }
 
-/// Single commands, or commands joined with '&&', that can be applied synchronously
-@MainActor private func simulatableCommands(_ action: Shell<any Command>) -> [any Command]? {
-    let commands: [any Command]
-    switch action {
-        case .cmd(let command): commands = [command]
+/// Runs the shell the way `Shell.run` does, normalizing the tree after every command. Returns whether it succeeded, or
+/// nil if it reaches a command that can't run synchronously or that leaves the given workspaces
+@MainActor private func simulate(_ shell: Shell<any Command>, _ env: CmdEnv, _ io: CmdIo, _ isCovered: (Workspace) -> Bool) -> Bool? {
+    switch shell {
+        case .empty:
+            return true
+        case .cmd(let command):
+            guard command.isSimulatable,
+                  let workspace = command.args.resolveTargetOrReportError(env, io)?.workspace, isCovered(workspace),
+                  let succeeded = applySynchronously(command, env, io)
+            else { return nil }
+            for workspace in Workspace.all where isCovered(workspace) { workspace.normalizeContainers() }
+            return succeeded
         case .and(let shells):
-            var result: [any Command] = []
             for shell in shells {
-                guard case .cmd(let command) = shell else { return nil }
-                result.append(command)
+                guard let succeeded = simulate(shell, env, io, isCovered) else { return nil }
+                if !succeeded { return false }
             }
-            commands = result
-        default: return nil
+            return true
+        case .or(let shells):
+            for shell in shells {
+                guard let succeeded = simulate(shell, env, io, isCovered) else { return nil }
+                if succeeded { return true }
+            }
+            return false
+        case .seq(let shells):
+            var succeeded = true
+            for shell in shells {
+                guard let it = simulate(shell, env, io, isCovered) else { return nil }
+                succeeded = it
+            }
+            return succeeded
+        case .pipe:
+            return nil // Commands that change the tree don't read stdin
     }
-    let simulatable = commands.allSatisfy { command in
-        switch command {
+}
+
+extension Command {
+    /// Commands that only change the tree of the workspace they act on, synchronously
+    fileprivate var isSimulatable: Bool {
+        switch self {
             case is MoveCommand, is SwapCommand, is LayoutCommand, is ResizeCommand, is BalanceSizesCommand,
                  is FlattenWorkspaceTreeCommand, is JoinWithCommand, is SplitCommand: true
             default: false
         }
     }
-    return simulatable && !commands.isEmpty ? commands : nil
 }
 
 /// Returns whether the command succeeded, or nil if it can't run synchronously
@@ -66,7 +102,7 @@ import Common
     let exitCode: BinaryExitCode? = switch command {
         case let it as MoveCommand: it.apply(env, io)
         case let it as SwapCommand: it.apply(env, io)
-        case let it as LayoutCommand: it.applyTilingLayout(env, io)
+        case let it as LayoutCommand: it.applySynchronously(env, io)
         case let it as ResizeCommand: it.run(env, io)
         case let it as BalanceSizesCommand: it.run(env, io)
         case let it as FlattenWorkspaceTreeCommand: it.run(env, io)

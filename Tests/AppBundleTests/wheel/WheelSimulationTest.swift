@@ -87,6 +87,9 @@ final class WheelSimulationTest: XCTestCase {
             "join-with right", "split vertical", "resize smart +100", "flatten-workspace-tree", "balance-sizes",
             "move right && move right && layout accordion",
             "move --window-id 3 left", "swap --window-id 5 up",
+            "layout floating", "layout tiling --window-id 7", "layout floating tiling --window-id 4",
+            "move left || move right", "move up; move right", "swap right && move down || layout v_accordion",
+            "join-with right && layout accordion", "layout tiles; flatten-workspace-tree",
         ]
         let workspace = makeTree()
         let initial = state(workspace)
@@ -116,6 +119,51 @@ final class WheelSimulationTest: XCTestCase {
         }
     }
 
+    /// The preview shows exactly the windows that the real action moves or resizes, where it puts them
+    func testPreviewMatchesTheRealResultForShells() async throws {
+        let commands = [
+            "move left || move right", "move up; move right", "swap right && move down || layout v_accordion",
+            "join-with right && layout accordion", "layout tiles; flatten-workspace-tree", "move left && move left",
+            "layout floating", "layout tiling --window-id 7", "join-with right", "move right && move right && layout accordion",
+        ]
+        for command in commands {
+            setUpWorkspacesForTests()
+            let workspace = makeTree()
+            (Window.get(byId: 1) ?? dieT()).lastFloatingSize = CGSize(width: 400, height: 300)
+            try await workspace.layoutWorkspace()
+            let before = await frames([1, 2, 3, 4, 5, 6, 7])
+            let preview = simulateWheelPreview(parseCommand(command).cmdOrDie, .defaultEnv, .all) ?? []
+
+            _ = await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
+            try await workspace.layoutWorkspace()
+            let real = await frames([1, 2, 3, 4, 5, 6, 7])
+
+            let changed = Set(real.keys.filter { real[$0] != before[$0] })
+            assertEquals(Set(preview.map(\.windowId)), changed, additionalMsg: command)
+            for item in preview {
+                assertEquals(rounded([item.windowId: item.rect])[item.windowId], real[item.windowId], additionalMsg: "\(command): window \(item.windowId)")
+            }
+        }
+    }
+
+    /// The outlined window is the one that really gets focus, also when floating windows are seen as tiling ones
+    func testFocusPreviewMatchesTheRealFocus() async throws {
+        let commands = [
+            "focus right", "focus left", "focus down", "focus up", "focus --ignore-floating left",
+            "focus --boundaries-action wrap-around-the-workspace left", "focus dfs-next", "focus --window-id 5",
+            "focus --boundaries all-monitors-outer-frame left",
+        ]
+        for command in commands {
+            setUpWorkspacesForTests()
+            let workspace = makeTree()
+            try await workspace.layoutWorkspace()
+            let preview = await computeWheelPreview(parseCommand(command).cmdOrDie, .defaultEnv, .target)
+            _ = await parseCommand(command).cmdOrDie.run(.defaultEnv, .emptyStdin)
+            let focused = globalFocus.windowOrNil?.windowId
+            assertEquals(preview.map(\.windowId), focused == 1 ? [] : [focused].compactMap { $0 }, additionalMsg: command)
+        }
+    }
+
     func testPreviewModes() {
         let workspace = makeTree()
         _ = workspace
@@ -129,8 +177,11 @@ final class WheelSimulationTest: XCTestCase {
         XCTAssertNil(simulateWheelPreview(move, .defaultEnv, .off))
         // Unsupported commands and shells
         XCTAssertNil(simulateWheelPreview(parseCommand("workspace b").cmdOrDie, .defaultEnv, .all))
-        XCTAssertNil(simulateWheelPreview(parseCommand("move right || move left").cmdOrDie, .defaultEnv, .all))
-        // Switching to floating isn't synchronous
-        XCTAssertNil(simulateWheelPreview(parseCommand("layout floating").cmdOrDie, .defaultEnv, .all))
+        XCTAssertNil(simulateWheelPreview(parseCommand("move right | move left").cmdOrDie, .defaultEnv, .all))
+        XCTAssertNil(simulateWheelPreview(parseCommand("move right && workspace b").cmdOrDie, .defaultEnv, .all))
+        // Unless the unsupported command doesn't run
+        XCTAssertNotNil(simulateWheelPreview(parseCommand("move right || workspace b").cmdOrDie, .defaultEnv, .all))
+        // A window that floats is outlined even if it keeps its frame
+        assertEquals(simulateWheelPreview(parseCommand("layout floating").cmdOrDie, .defaultEnv, .target)?.map(\.windowId), [1])
     }
 }

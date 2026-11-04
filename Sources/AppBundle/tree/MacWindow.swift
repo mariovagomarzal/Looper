@@ -216,9 +216,15 @@ final class MacWindow: Window {
 extension Window {
     @MainActor
     func relayoutWindow(on workspace: Workspace, _ cm: CancellationMode, forceTile: Bool = false) async throws {
-        let data = forceTile
-            ? unbindAndGetBindingDataForNewTilingWindow(workspace, window: self)
-            : try await unbindAndGetBindingDataForNewWindow(self.asMacWindow().windowId, self.asMacWindow().macApp, workspace, window: self, cm)
+        if forceTile { return bindAsNewTilingWindow(on: workspace) }
+        let data = try await unbindAndGetBindingDataForNewWindow(self.asMacWindow().windowId, self.asMacWindow().macApp, workspace, window: self, cm)
+        bind(to: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
+    }
+
+    /// Tiles the window next to the most recent window of the workspace, like a newly opened window
+    @MainActor
+    func bindAsNewTilingWindow(on workspace: Workspace) {
+        let data = unbindAndGetBindingDataForNewTilingWindow(workspace, window: self)
         bind(to: data.parent, adaptiveWeight: data.adaptiveWeight, index: data.index)
     }
 }

@@ -28,9 +28,8 @@ struct WheelPreviewItem: Equatable, Identifiable {
 
 /// What the action would do, without doing it. Empty when the action can't be previewed.
 ///
-/// Only commands whose result can be computed directly are supported for now: 'place', 'fullscreen' (turning it on)
-/// and 'focus' (towards a direction inside the workspace, or to a window). Commands that rearrange the tiling tree
-/// need a simulation and aren't previewed yet.
+/// 'place', 'fullscreen' (turning it on) and 'focus' are computed directly. Commands that rearrange the tree, alone or
+/// in a shell, are simulated (see `simulateWheelPreview`).
 @MainActor func computeWheelPreview(_ action: Shell<any Command>, _ env: CmdEnv, _ mode: WheelPreviewMode) async -> [WheelPreviewItem] {
     guard mode != .off else { return [] }
     guard case .cmd(let command) = action else { return simulateWheelPreview(action, env, mode) ?? [] }
@@ -52,28 +51,34 @@ struct WheelPreviewItem: Equatable, Identifiable {
             let rect = fullscreen.args.noOuterGaps ? monitor.visibleRect : monitor.visibleRectPaddedByOuterGaps
             return [WheelPreviewItem(windowId: window.windowId, rect: rect, kind: .frame)]
         case let focus as FocusCommand:
-            guard let window = focusTarget(focus, env, io), let rect = try? await window.getAxRect(.nonCancellable) else { return [] }
+            guard let window = await focusTarget(focus, env, io), let rect = try? await window.getAxRect(.nonCancellable) else { return [] }
             return [WheelPreviewItem(windowId: window.windowId, rect: rect, kind: .focus)]
         default:
             return simulateWheelPreview(action, env, mode) ?? []
     }
 }
 
-/// The window that 'focus' would focus, for the cases that don't leave the workspace
-@MainActor private func focusTarget(_ focus: FocusCommand, _ env: CmdEnv, _ io: CmdIo) -> Window? {
-    switch focus.args.target {
-        case .direction(let direction):
-            guard let target = focus.args.resolveTargetOrReportError(env, io),
-                  let window = target.windowOrNil,
-                  case .tilingContainer = window.windowParentCases,
-                  let (parent, _, neighborIndex) = window.closestParent(hasInhabitedChildrenInDirection: direction, withLayout: nil)
-            else { return nil }
-            return parent.children[neighborIndex].findInhabitedLeafWindowRecursive(snappedTo: direction.opposite)
-        case .windowId(let windowTarget):
-            return windowTarget.resolveOrReportError(env, io)
-        case .dfsIndex, .dfsRelative:
-            return nil
+/// The window that 'focus' would focus, also on another monitor
+@MainActor private func focusTarget(_ focus: FocusCommand, _ env: CmdEnv, _ io: CmdIo) async -> Window? {
+    func window(_ destination: FocusCommand.Destination) -> Window? {
+        switch destination {
+            case .window(let window): window
+            case .workspace(let workspace, let raising): raising ?? workspace.toLiveFocus().windowOrNil
+            case .exit: nil
+        }
     }
+    guard let target = focus.args.resolveTargetOrReportError(env, io) else { return nil }
+    // Directions see floating windows as tiling ones, placed by their frames, like the command does
+    guard case .direction = focus.args.target, focus.args.floatingAsTiling, !target.workspace.floatingWindows.isEmpty else {
+        return window(focus.destination(target, env, io))
+    }
+    let plan = await FloatingAsTilingPlan(target.workspace)
+    // The tree may have changed while the frames were read
+    guard let target = focus.args.resolveTargetOrReportError(env, io) else { return nil }
+    let snapshot = TreeSnapshot([target.workspace])
+    defer { snapshot.restore() }
+    makeFloatingWindowsSeenAsTiling(plan)
+    return window(focus.destination(target, env, io))
 }
 
 /// Draws the preview outlines above every window and below the wheel. One transparent panel per screen, so that the

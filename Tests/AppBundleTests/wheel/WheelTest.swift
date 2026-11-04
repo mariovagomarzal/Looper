@@ -459,7 +459,9 @@ final class WheelTest: XCTestCase {
         // Focus outlines the window that gets focus
         assertEquals(await preview("focus right").map(\.windowId), [2])
         assertEquals(await preview("focus right").first?.kind, .focus)
-        assertEquals(await preview("focus left"), []) // No window there
+        // Like the command, it sees the floating window as a tiling one at its center, left of the focused one
+        assertEquals(await preview("focus left").map(\.windowId), [3])
+        assertEquals(await preview("focus --ignore-floating left"), []) // No window there
         // Tiling commands are simulated (see WheelSimulationTest)
         assertEquals(await preview("move right").map(\.windowId), [1])
         // Unsupported commands, shells and the 'off' mode have no preview
