@@ -20,10 +20,10 @@ changes.
 ```bash
 git clone https://github.com/mariovagomarzal/Looper.git
 cd Looper
-devenv shell -- just release 0.1.0
+devenv shell -- scripts/bundle.sh --release --output .build/dist
 ```
 
-This leaves `Looper.app` and the `looper` command line tool in `.build/dist`, and a zip with both.
+This leaves `Looper.app` and the `looper` command line tool in `.build/dist`.
 
 macOS ties the Accessibility permission to the app's code signature. The build signs with a `Looper Development`
 identity so that the permission survives rebuilds; see [Development](/Looper/docs/development/#code-signing) to create it, or

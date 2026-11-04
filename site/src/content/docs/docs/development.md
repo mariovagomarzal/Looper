@@ -24,7 +24,7 @@ Run any recipe with `devenv shell -- just <recipe>`, or enter the environment wi
 | `just run` | Builds the debug app (`Looper-Debug.app`) and (re)launches it. |
 | `just test` | Unit tests. |
 | `just generate` | Regenerates the CLI help from the command pages of these docs. |
-| `just release <version>` | Signed release in `.build/dist`. |
+| `just release` | Signed release of the version in `VERSION`, in `.build/dist`, tagged `v<version>`. |
 | `just site` | Runs these docs locally. |
 | `just completion` | Shell completions in `.build/completion`. |
 

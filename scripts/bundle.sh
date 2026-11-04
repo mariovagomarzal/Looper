@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 configuration=debug
-version="0.0.0-SNAPSHOT"
+version="$(cat VERSION)-dev"
 identity="${LOOPER_CODESIGN_IDENTITY:-Looper Development}"
 output=.build/bundle
 while test $# -gt 0; do
@@ -86,7 +86,7 @@ cat > "$app/Contents/Info.plist" << EOF
     <key>CFBundleShortVersionString</key>
     <string>$version</string>
     <key>CFBundleVersion</key>
-    <string>$version</string>
+    <string>${version%%-*}</string>
     <key>LSMinimumSystemVersion</key>
     <string>$min_macos</string>
     <key>LSUIElement</key>

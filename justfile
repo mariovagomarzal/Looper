@@ -60,8 +60,8 @@ completion:
     complgen scripts/completion/grammar.bnf --bash .build/completion/looper.bash
 
 # Build a signed release zip in .build/dist.
-release version:
-    scripts/release.sh --version {{version}}
+release:
+    scripts/release.sh
 
 # Reset the Accessibility permission of the debug app.
 reset-permission:

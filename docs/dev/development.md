@@ -41,7 +41,7 @@ Run `just` to list them all.
 | `just format` / `just lint` | SwiftFormat; SwiftFormat check, SwiftLint and Periphery |
 | `just check` | Generated sources up to date, strict build, tests and lint |
 | `just completion` | zsh, fish and bash completions in `.build/completion` |
-| `just release <version>` | Signed release zip in `.build/dist` (requires a clean working tree) |
+| `just release` | Signed release zip of the version in `VERSION` in `.build/dist`, tagged `v<version>` (requires a clean working tree) |
 | `just reset-permission` | Resets the Accessibility permission of the debug app |
 | `just clean` | Removes `.build` |
 
@@ -53,9 +53,15 @@ debug app re-enables it.
 
 `Sources/Common/cmdHelpGenerated.swift` and `Sources/Cli/subcommandDescriptionsGenerated.swift` are generated
 from the command pages of the docs (`site/src/content/docs/docs/commands/*.md`: the `description` and the `text` block
-under **Synopsis**) by `scripts/generate.sh` and committed. `versionGenerated.swift` and
-`gitHashGenerated.swift` hold `0.0.0-SNAPSHOT`/`SNAPSHOT` in the repository; `just release` fills them in
+under **Synopsis**) by `scripts/generate.sh` and committed. `versionGenerated.swift` holds
+the next release with a `-dev` suffix and `gitHashGenerated.swift` holds `SNAPSHOT`; `just release` fills them in
 temporarily and restores them afterwards.
+
+## Versions
+
+`VERSION` is the only source of the version. Development builds report it with a `-dev` suffix (`0.1.0-dev`). To
+release, set `VERSION` to the new version, run `just generate`, commit, and run `just release`: it builds the signed
+zip and tags the commit `v<version>`.
 
 ## Editors
 

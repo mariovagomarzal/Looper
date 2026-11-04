@@ -5,7 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-build_version="0.0.0-SNAPSHOT"
+# Development builds are the next release (VERSION) with a -dev suffix
+build_version="$(cat VERSION)-dev"
 embed_git_hash=0
 while test $# -gt 0; do
     case $1 in
