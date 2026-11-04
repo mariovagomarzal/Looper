@@ -4,60 +4,52 @@
 </picture>
 
 > [!WARNING]
-> **Work in progress.** Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) by Nikita Bobko
-> and is currently under construction. Expect breaking changes, missing documentation and rough edges.
+> **Work in progress.** Looper is under construction and has no releases yet. Expect breaking changes and rough
+> edges.
 
-Looper is a personal tiling window manager for macOS, built on AeroSpace's tree-based tiling and adapted to the
-author's workflow.
+Looper is a tiling window manager for macOS. It arranges your windows in a tree of containers as they open, and lets
+you move them around with key bindings, a radial wheel under the pointer, trackpad gestures, the mouse or the `looper`
+command line.
 
-## Goals
+Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) and keeps its tree-based tiling, its commands
+and its plain-text configuration. On top of that it adds:
 
-- Keep AeroSpace's tree-based tiling, commands and plain-text configuration.
-- Add a radial wheel, inspired by [Loop](https://github.com/MrKai77/Loop), that runs Looper commands,
-  shell commands and other actions, with previews for window-management actions.
-- Wheel profiles activated by context or by an additional modifier key.
-- Trackpad gestures (3- and 4-finger swipes and taps) bound to commands per mode, like keys.
-- Independent workspaces per monitor and per native macOS Space (desktop). Looper reads Spaces but never moves
-  windows between them.
+- **The radial wheel**, modeled on the radial menu of [Loop](https://github.com/MrKai77/Loop): hold a key, point in a
+  direction and release to run a command, with a preview of where the windows will land, profiles, context-aware
+  variants and icons.
+- **Trackpad gestures**: three- and four-finger swipes and taps bound to commands, per mode, like keys.
+- **Workspaces per native Space**: every monitor and every macOS Space keeps its own workspaces.
+- **A configurable menu bar**, written as templates with variables, filters and SF Symbols.
+- **Side-specific modifiers**, like the left or the right alt only, and key bindings that follow your keyboard layout.
+- Commands that cross monitors, and moving and resizing floating windows from the keyboard.
 
-## Identity
+<!-- Video: Looper in 20 seconds (site/public/videos/hero.mp4). GitHub only plays videos uploaded as attachments:
+     drag hero.mp4 into the README editor on GitHub and put the URL it gives on its own line here. -->
 
-| | |
-| --- | --- |
-| App | `Looper.app` (`com.mariovagomarzal.looper`) |
-| CLI | `looper` |
-| Config | `~/.looper.toml` or `${XDG_CONFIG_HOME}/looper/looper.toml` |
-| Environment variables | `LOOPER_WINDOW_ID`, `LOOPER_WORKSPACE`, `LOOPER_FOCUSED_WORKSPACE`, `LOOPER_PREV_WORKSPACE` |
+## Documentation
 
-Documentation: [mariovagomarzal.github.io/Looper](https://mariovagomarzal.github.io/Looper/docs/), built from
-[site/](./site). The command pages there also generate the CLI `--help` output.
+Everything is in the docs at **[mariovagomarzal.github.io/Looper](https://mariovagomarzal.github.io/Looper/docs/)**:
 
-## Brand
+- [Installation](https://mariovagomarzal.github.io/Looper/docs/installation/): build Looper and grant it permission.
+- [First steps](https://mariovagomarzal.github.io/Looper/docs/first-steps/): your config file and the default bindings.
+- [The tree](https://mariovagomarzal.github.io/Looper/docs/concepts/tree/): how Looper arranges windows.
+- [The radial wheel](https://mariovagomarzal.github.io/Looper/docs/guides/wheel/): Looper's signature feature, step by
+  step.
 
-The icon, its animated version, the README banner and the one-color glyph live in
-[resources/brand/](./resources/brand) as SVG (`icon.svg`, `icon-light.svg`, `icon-animated.svg`,
-`icon-animated-light.svg`, `banner.svg`, `banner-light.svg`, `glyph.svg`). The app icon in
-`resources/Assets.xcassets` is `icon.svg` rendered at 1024 px.
+The docs are built from [site/](./site). To work on Looper itself, see
+[Development](https://mariovagomarzal.github.io/Looper/docs/development/).
 
 ## Credits
 
-- [AeroSpace](https://github.com/nikitabobko/AeroSpace) by Nikita Bobko: Looper is a fork of it (MIT).
-- [Loop](https://github.com/MrKai77/Loop) by Kai Azim: the radial wheel's design and interaction are modeled
-  on Loop's radial menu. Looper's implementation is written from scratch and shares no code with Loop (GPL-3.0).
+Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) by Nikita Bobko and its contributors, released
+under the MIT License. Looper keeps its tree-based tiling, its commands and its configuration, and many of the command
+pages in the docs come from AeroSpace's.
 
-## Development
-
-Looper is a single SwiftPM package built with the Xcode toolchain; development tools come from
-[devenv](https://devenv.sh/) and tasks are [just](https://just.systems/) recipes:
-
-```sh
-devenv shell
-just run    # build and launch Looper-Debug.app
-just check  # strict build, tests and lint
-```
-
-See [docs/dev/development.md](./docs/dev/development.md) and [docs/dev/architecture.md](./docs/dev/architecture.md).
+The radial wheel's design and interaction are modeled on the radial menu of [Loop](https://github.com/MrKai77/Loop) by
+Kai Azim. Looper's implementation is written from scratch and shares no code with Loop, which is licensed under the
+GPL-3.0.
 
 ## License
 
-MIT, like AeroSpace. See [LICENSE.txt](./LICENSE.txt) and [legal/](./legal).
+Looper is released under the [MIT License](./LICENSE). The licenses of its dependencies are in the [`legal`](./legal)
+folder.

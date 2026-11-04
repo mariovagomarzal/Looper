@@ -1,6 +1,6 @@
 # LICENSE
 
-Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) and, like it, is licensed under MIT. See [LICENSE](./LICENSE.txt) for the full license text.
+Looper is a fork of [AeroSpace](https://github.com/nikitabobko/AeroSpace) and, like it, is licensed under MIT. See [LICENSE](./LICENSE) for the full license text.
 
 ## Bundled dependencies and materials
 

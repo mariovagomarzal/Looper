@@ -17,5 +17,5 @@ GPL-3.0.
 
 ## License
 
-Looper is released under the [MIT License](https://github.com/mariovagomarzal/Looper/blob/main/LICENSE.txt). The
+Looper is released under the [MIT License](https://github.com/mariovagomarzal/Looper/blob/main/LICENSE). The
 licenses of its dependencies are in the [`legal`](https://github.com/mariovagomarzal/Looper/tree/main/legal) folder.
