@@ -60,7 +60,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-      - uses: ./.github/actions/setup-macos
+      - uses: ./.github/actions/setup-devenv
       - name: Import the signing identity
         env:
           CERTIFICATE_P12: ${{ secrets.LOOPER_CERTIFICATE_P12 }}
