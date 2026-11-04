@@ -6,15 +6,16 @@ Read the architecture page (`docs/src/content/docs/docs/architecture.md`) before
 
 ## Commands
 
-Tools (just, swiftformat, swiftlint, periphery, Node and pnpm) come from devenv; Swift and the SDK come from the system Xcode.
-Run everything through `devenv shell -- <command>`. Never build the app with Nix.
+Tools (just, swiftformat, swiftlint, periphery, Node and pnpm) come from devenv, the recommended setup, or can be
+installed by hand; Swift and the SDK come from the system Xcode. With devenv, prefix commands with `devenv shell --`,
+unless the environment is already active. CI uses devenv. Never build the app with Nix.
 
 - `just check`: regenerated sources, strict build (warnings are errors), tests and lint. Must pass before a commit.
 - `just test`, `swift test --filter <TestClass>`: tests.
 - `just run`: builds and relaunches the debug app (`Looper-Debug`, logs under `com.mariovagomarzal.looper.debug`).
 - `just generate`: after editing the command pages (`docs/src/content/docs/docs/commands/*.md`), which generate the
   CLI help.
-- `just docs`: the website and docs (Astro Starlight in `docs/`). `cd docs && pnpm build` checks every internal link.
+- `just docs`: the website and docs (Astro Starlight in `docs/`). `just docs-build` checks every internal link.
 
 ## Rules
 

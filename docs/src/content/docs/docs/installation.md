@@ -16,25 +16,20 @@ Download the zip of the [latest release](https://github.com/mariovagomarzal/Loop
 
 ## Build from source
 
-Building requires:
-
-- [Xcode](https://developer.apple.com/xcode/), which provides Swift, the macOS SDK and the build tools.
-- [devenv](https://devenv.sh/), which provides the development tools (`just`, the formatters and linters). It doesn't
-  build the app: Swift and the SDK always come from Xcode.
-
-Then:
+Building only requires [Xcode](https://developer.apple.com/xcode/), which provides Swift, the macOS SDK and the build
+tools:
 
 ```bash
 git clone https://github.com/mariovagomarzal/Looper.git
 cd Looper
-devenv shell -- scripts/bundle.sh --release --output .build/dist
+scripts/bundle.sh --release --identity - --output .build/dist
 ```
 
 This leaves `Looper.app` and the `looper` command line tool in `.build/dist`.
 
-macOS ties the Accessibility permission to the app's code signature. The build signs with a `Looper Development`
-identity so that the permission survives rebuilds; see [Development](/Looper/docs/development/#code-signing) to create it, or
-pass `--identity -` to sign ad hoc.
+macOS ties the Accessibility permission to the app's code signature, and `--identity -` signs ad hoc: macOS asks for the
+permission again after each rebuild. To keep it across rebuilds, sign with your own identity, as explained in
+[Development](/Looper/docs/development/#code-signing).
 
 ## Install
 
