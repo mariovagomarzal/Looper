@@ -5,7 +5,7 @@ import Common
 // colon. A list of templates is a list of alternatives: the first one whose symbols all exist is shown.
 
 struct MenuBarConfig: Equatable, Sendable {
-    var format: MenuBarAlternatives = parseDefault(":looper: %{mode} %{workspaces}", .format)
+    var format: MenuBarAlternatives = parseDefault(["%{mode} %{workspaces}", ":looper:"], .format)
     /// Templates of the active mode, by mode name. `anyMode` applies to the modes without their own, except the main one
     var mode: [String: MenuBarAlternatives] = [anyMode: parseDefault([":%{mode|initial}.circle:", "(%{mode|initial|upper})"], .mode)]
     /// Templates of the workspaces in each state. Workspaces in a state without a template aren't shown
@@ -333,19 +333,32 @@ private func renderAlternatives(
     _ value: (MenuBarVariable) -> String,
 ) -> [MenuBarSegment] {
     let rendered = alternatives.map { render($0, drawn, value) }
-    let isDrawable: ([MenuBarSegment]) -> Bool = { segments in
-        segments.allSatisfy { if case .symbol(let name) = $0 { symbolExists(name) } else { true } }
+    // An alternative is skipped when one of its symbols doesn't exist, or when it has variables and all of them are
+    // empty: it has nothing to show
+    let isUsable: (RenderedTemplate) -> Bool = { template in
+        !template.hasOnlyEmptyVariables &&
+            template.segments.allSatisfy { if case .symbol(let name) = $0 { symbolExists(name) } else { true } }
     }
-    // When no alternative can be drawn, the names of the missing symbols are shown instead
-    let chosen = rendered.first(where: isDrawable) ?? rendered.last ?? []
+    // When no alternative is usable, the last one is shown, with the names of its missing symbols
+    let chosen = (rendered.first(where: isUsable) ?? rendered.last)?.segments ?? []
     return mergeTexts(chosen.map { segment in
         if case .symbol(let name) = segment, !symbolExists(name) { .text(name) } else { segment }
     })
 }
 
-private func render(_ template: MenuBarTemplate, _ drawn: [MenuBarVariable: [MenuBarSegment]], _ value: (MenuBarVariable) -> String) -> [MenuBarSegment] {
+private struct RenderedTemplate {
+    let segments: [MenuBarSegment]
+    let hasOnlyEmptyVariables: Bool
+}
+
+private func render(_ template: MenuBarTemplate, _ drawn: [MenuBarVariable: [MenuBarSegment]], _ value: (MenuBarVariable) -> String) -> RenderedTemplate {
+    var variables = 0
+    var emptyVariables = 0
     func filtered(_ variable: MenuBarVariable, _ filters: [MenuBarFilter]) -> String {
-        filters.reduce(value(variable)) { $1.apply($0) }
+        let text = filters.reduce(value(variable)) { $1.apply($0) }
+        variables += 1
+        if text.isEmpty { emptyVariables += 1 }
+        return text
     }
     var result: [MenuBarSegment] = []
     var dropLeadingSpace = false
@@ -356,8 +369,15 @@ private func render(_ template: MenuBarTemplate, _ drawn: [MenuBarVariable: [Men
                 dropLeadingSpace = false
                 result.append(.text(text))
             case .variable(let variable, let filters):
-                let text = filtered(variable, filters)
-                let segments: [MenuBarSegment] = drawn[variable] ?? (text.isEmpty ? [] : [.text(text)])
+                let segments: [MenuBarSegment]
+                if let drawnSegments = drawn[variable] {
+                    variables += 1
+                    if drawnSegments.isEmpty { emptyVariables += 1 }
+                    segments = drawnSegments
+                } else {
+                    let text = filtered(variable, filters)
+                    segments = text.isEmpty ? [] : [.text(text)]
+                }
                 if !segments.isEmpty {
                     result += segments
                     continue
@@ -381,7 +401,7 @@ private func render(_ template: MenuBarTemplate, _ drawn: [MenuBarVariable: [Men
                 result.append(.symbol(expanded.lowercased()))
         }
     }
-    return result.filter { $0 != .text("") }
+    return RenderedTemplate(segments: result.filter { $0 != .text("") }, hasOnlyEmptyVariables: variables > 0 && variables == emptyVariables)
 }
 
 private func mergeTexts(_ segments: [MenuBarSegment]) -> [MenuBarSegment] {

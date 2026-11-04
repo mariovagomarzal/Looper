@@ -88,12 +88,14 @@ gaps.outer.right =      0
 #   Filters: upper, lower, capitalize, initial (the first character)
 # - SF Symbols between colons: ':1.square.fill:', also with variables: ':%{workspace}.square:'. Write '::' for a colon.
 #   ':looper:' is Looper's glyph
-# - A list of templates is a list of alternatives: the first one whose symbols all exist is shown
+# - A list of templates is a list of alternatives: the first one is shown that has all its symbols, and that has
+#   something to show (a template whose variables are all empty is skipped)
 # An empty variable takes a space next to it along.
 #
 # Left to right. Variables: %{mode} (drawn with menu-bar.mode), %{workspaces} (drawn with menu-bar.workspace) and
 # %{app-name} (of the focused window)
-menu-bar.format = ':looper: %{mode} %{workspaces}'
+# By default, Looper's glyph shows only when there's nothing else to show
+menu-bar.format = ['%{mode} %{workspaces}', ':looper:']
 # The active mode. A template applies to every mode but the main one. A table sets it per mode, with '*' for the rest
 # of the modes but the main one, and modes without a template aren't shown. Variables: %{mode} (its name)
 # Example: menu-bar.mode = { main = ':house:', resize = ':arrow.up.left.and.arrow.down.right:', '*' = '%{mode|upper}' }

@@ -17,9 +17,11 @@ final class MenuBarConfigTest: XCTestCase {
             [Item(name: "1", monitor: "A", state: .focused), Item(name: "2", monitor: "A", state: .occupied), Item(name: "3", monitor: "A", state: .empty)],
             [Item(name: "dev", monitor: "B", state: .visible)],
         ])
-        assertEquals(render("", state), [.symbol("looper"), .text(" "), .symbol("1.square.fill"), .text(" │ dev")])
+        assertEquals(render("", state), [.symbol("1.square.fill"), .text(" │ dev")])
+        // Looper's glyph when there's nothing else
+        assertEquals(render("", MenuBarState(monitors: [[Item(name: "1", monitor: "A", state: .empty)]])), [.symbol("looper")])
         // The mode comes first, separated by a space
-        assertEquals(render("", state.with(\.mode, "service")), [.symbol("looper"), .text(" "), .symbol("s.circle"), .text(" "), .symbol("1.square.fill"), .text(" │ dev")])
+        assertEquals(render("", state.with(\.mode, "service")), [.symbol("s.circle"), .text(" "), .symbol("1.square.fill"), .text(" │ dev")])
     }
 
     func testTemplates() {
@@ -92,6 +94,24 @@ final class MenuBarConfigTest: XCTestCase {
         assertEquals(render(toml, items([("mail", .focused)])), [.symbol("envelope.fill")])
         assertEquals(render(toml, items([("mail", .empty)])), [.symbol("envelope")])
         assertEquals(render(toml, items([("mail", .occupied)])), [.text("mail")])
+    }
+
+    func testAlternativesWithNothingToShowAreSkipped() {
+        let toml = """
+            menu-bar.format = ['%{mode} %{workspaces}', ':looper:']
+            menu-bar.workspace.focused = '%{workspace}'
+            menu-bar.mode = '%{mode}'
+            [mode.main.binding]
+            [mode.service.binding]
+            """
+        let focused = MenuBarState(monitors: [[Item(name: "1", monitor: "A", state: .focused)]])
+        let empty = MenuBarState(monitors: [[Item(name: "1", monitor: "A", state: .empty)]])
+        assertEquals(render(toml, focused), [.text("1")])
+        assertEquals(render(toml, empty), [.symbol("looper")])
+        // One variable with something to show is enough
+        assertEquals(render(toml, empty.with(\.mode, "service")), [.text("service")])
+        // The last alternative is shown even with nothing to show
+        assertEquals(render("menu-bar.format = '<%{workspaces}>'", MenuBarState()), [.text("<>")])
     }
 
     func testEmptyVariablesTakeASpaceAlong() {
