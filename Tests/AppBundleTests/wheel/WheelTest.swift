@@ -205,6 +205,19 @@ final class WheelTest: XCTestCase {
         assertEquals(key.effect, .cancel("key pressed"))
         assertEquals(key.swallow, false)
         assertEquals(machine.session, .awaitingRelease)
+
+        // Escape cancels a held wheel and doesn't reach the app
+        machine = WheelTapMachine()
+        _ = machine.modifiersChanged(fnDown: true, PressedModifiers(), triggers, enabled: true)
+        let escape = machine.keyDown(isEscape: true)
+        assertEquals(escape.effect, .cancel("key pressed"))
+        assertEquals(escape.swallow, true)
+        assertEquals(machine.session, .awaitingRelease)
+
+        // With no wheel open, escape passes through
+        let closed = machine.keyDown(isEscape: true)
+        assertNil(closed.effect)
+        assertEquals(closed.swallow, false)
     }
 
     func testTapMachineOpenedByCommand() {

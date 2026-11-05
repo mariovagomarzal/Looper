@@ -112,14 +112,14 @@ struct WheelTapMachine: Equatable, Sendable {
     }
 
     /// Returns the effect, and whether the key press must be swallowed. Keys pass through, so that shortcuts with the
-    /// trigger modifiers (fn-arrow, fn-delete...) keep working. Only escape is swallowed when it closes a wheel opened by
-    /// a command, so that it doesn't also reach the app under the wheel
+    /// trigger modifiers (fn-arrow, fn-delete...) keep working. Only escape is swallowed when it closes a wheel, so that
+    /// it doesn't also reach the focused app
     mutating func keyDown(isEscape: Bool) -> (effect: WheelTapEffect?, swallow: Bool) {
         pendingSwitch = nil
         switch session {
             case .held:
                 session = .awaitingRelease
-                return (.cancel("key pressed"), false)
+                return (.cancel("key pressed"), isEscape)
             case .free:
                 session = .idle
                 return (.cancel("key pressed"), isEscape)

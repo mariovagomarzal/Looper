@@ -233,7 +233,10 @@ private func handleKeyDown(_ event: CGEvent) -> Bool {
     // gesture
     let wheel = hotkeyTapState.withLock { $0.wheel.keyDown(isEscape: keyCode == UInt16(kVK_Escape)) }
     apply(wheel.effect)
-    if wheel.swallow { return true }
+    if wheel.swallow {
+        hotkeyTapState.withLock { _ = $0.swallowedKeyUps.insert(keyCode) }
+        return true
+    }
     let pressed = PressedModifiers(event.flags)
     let match: (mode: String, binding: HotkeyBinding)? = hotkeyTapState.withLock { state in
         guard let mode = state.mode, let binding = matchHotkeyBinding(state.bindingsByKeyCode[keyCode] ?? [], pressed) else { return nil }
