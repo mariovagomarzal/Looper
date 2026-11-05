@@ -22,8 +22,7 @@ and its plain-text configuration. On top of that it adds:
 - **Side-specific modifiers**, like the left or the right alt only, and key bindings that follow your keyboard layout.
 - Commands that cross monitors, and moving and resizing floating windows from the keyboard.
 
-<!-- Video: Looper in action (docs/public/videos/hero.mp4). GitHub only plays videos uploaded as attachments:
-     drag hero.mp4 into the README editor on GitHub and put the URL it gives on its own line here. -->
+https://github.com/user-attachments/assets/b7644da3-e814-410a-bbec-8fad0308387b
 
 ## Documentation
 
