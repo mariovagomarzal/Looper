@@ -96,6 +96,18 @@ jobs:
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
 
+  homebrew:
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask the Homebrew tap to update the cask
+        uses: mariovagomarzal/homebrew-tap@v1
+        with:
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          package: looper
+          version: ${{ needs.version.outputs.version }}
+
   pages:
     needs: release
     uses: ./.github/workflows/pages.yml

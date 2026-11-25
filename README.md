@@ -28,7 +28,8 @@ https://github.com/user-attachments/assets/b7644da3-e814-410a-bbec-8fad0308387b
 
 Everything is in the docs at **[mariovagomarzal.github.io/Looper](https://mariovagomarzal.github.io/Looper/docs/)**:
 
-- [Installation](https://mariovagomarzal.github.io/Looper/docs/installation/): build Looper and grant it permission.
+- [Installation](https://mariovagomarzal.github.io/Looper/docs/installation/): install Looper with Homebrew or build
+  it, and grant it permission.
 - [First steps](https://mariovagomarzal.github.io/Looper/docs/first-steps/): your config file and the default bindings.
 - [The tree](https://mariovagomarzal.github.io/Looper/docs/concepts/tree/): how Looper arranges windows.
 - [The radial wheel](https://mariovagomarzal.github.io/Looper/docs/guides/wheel/): Looper's signature feature, step by
