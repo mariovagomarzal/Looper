@@ -108,11 +108,15 @@ Every job gets its tools from devenv, at the version pinned in `.github/actions/
   website, which fails on broken internal links. Pull requests also check their commit messages.
 - **Release** runs when a push to `main` raises `VERSION`. It repeats the checks, builds the signed zip, creates the
   GitHub release with its tag, its checksum and notes from the Conventional Commits since the previous tag, and
-  publishes the website. A version that isn't newer than the latest release publishes nothing.
+  publishes the website. It then asks the [Homebrew tap](https://github.com/mariovagomarzal/homebrew-tap) to update
+  the `looper` cask, which the tap does in a pull request. A version that isn't newer than the latest release publishes
+  nothing.
 - **Pages** publishes the website on its own when run by hand, to get a fix to the docs out without a release.
 
 Signing needs the `Looper Development` identity as the `LOOPER_CERTIFICATE_P12` secret (the exported `.p12`, in base64)
-and its password as `LOOPER_CERTIFICATE_PASSWORD`.
+and its password as `LOOPER_CERTIFICATE_PASSWORD`. Asking the tap for the update needs the `HOMEBREW_TAP_TOKEN`
+secret, a fine-grained personal access token with access to `mariovagomarzal/homebrew-tap` only and the **Contents:
+Read and write** permission.
 
 ## Conventions
 

@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Download or build Looper, install it and grant it the Accessibility permission.
+description: Install Looper with Homebrew, or download or build it, and grant it the Accessibility permission.
 ---
 
 :::caution[Work in progress]
@@ -8,6 +8,16 @@ Looper is under construction. Expect breaking changes.
 :::
 
 Looper requires macOS 27 or later.
+
+## Homebrew
+
+```bash
+brew install --cask mariovagomarzal/tap/looper
+```
+
+This installs `Looper.app` in `/Applications`, the `looper` command line tool and its shell completions, and
+`brew upgrade` brings each new release. Then open Looper and grant it the Accessibility permission, as in the last step
+of [Install](#install).
 
 ## Download
 
